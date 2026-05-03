@@ -1,10 +1,23 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-function getAuthHeader() {
+async function getAuthHeader(): Promise<Record<string, string>> {
+  // Client side
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("kon_token");
     if (token) return { "Authorization": `Bearer ${token}` };
+  } 
+  
+  // Server side
+  try {
+    // Dynamically import next/headers only on the server
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const token = cookieStore.get("kon_token")?.value;
+    if (token) return { "Authorization": `Bearer ${token}` };
+  } catch (e) {
+    // Silently fail if cookies() is not available
   }
+  
   return {};
 }
 
@@ -40,19 +53,24 @@ export function logout() {
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const headers = {
-    ...options.headers,
-    ...getAuthHeader(),
+  const authHeader = await getAuthHeader();
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+    ...authHeader,
   };
   
-  const res = await fetch(url, { ...options, headers });
-  if (res.status === 401) {
-    logout();
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
+  try {
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+      logout();
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
     }
+    return res;
+  } catch (e) {
+    throw e;
   }
-  return res;
 }
 
 export async function fetchDashboardKPIs() {

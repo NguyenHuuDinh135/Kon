@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, JSON, text
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, JSON, text, Sequence
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
@@ -17,7 +17,7 @@ class Customer(Base):
 
 class Order(Base):
     __tablename__ = "orders"
-    OrderID = Column(Integer, primary_key=True, index=True, name="orderID")
+    OrderID = Column(Integer, Sequence("orders_orderid_seq"), primary_key=True, index=True, name="orderID")
     CustomerID = Column(String, ForeignKey("customers.customerID"), name="customerID")
     EmployeeID = Column(Integer, name="employeeID")
     OrderDate = Column(String, name="orderDate")
@@ -37,18 +37,17 @@ class User(Base):
 
 class Category(Base):
     __tablename__ = "categories"
-    CategoryID = Column(Integer, primary_key=True, index=True, name="categoryID")
+    CategoryID = Column(Integer, Sequence("categories_categoryid_seq"), primary_key=True, index=True, name="categoryID")
     CategoryName = Column(String, name="categoryName")
     Description = Column(String, name="description")
 
 class Product(Base):
     __tablename__ = "products"
-    ProductID = Column(Integer, primary_key=True, index=True, name="productID")
+    ProductID = Column(Integer, Sequence("products_productid_seq"), primary_key=True, index=True, name="productID")
     ProductName = Column(String, name="productName")
     CategoryID = Column(Integer, ForeignKey("categories.categoryID"), name="categoryID")
     QuantityPerUnit = Column(String, name="quantityPerUnit")
     UnitPrice = Column(Float, name="unitPrice")
-    UnitsInStock = Column(Integer, name="unitsInStock")
     Discontinued = Column(Integer, name="discontinued")
 
 class OrderDetail(Base):

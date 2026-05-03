@@ -24,11 +24,11 @@ export default function LoginPage() {
 
     try {
       await login(username, password);
-      // Success - redirect based on credentials (mock logic for now)
+      // Success - use window.location.href to ensure cookie is sent to middleware
       if (username === "admin") {
-        router.push("/dashboard");
+        window.location.href = "/dashboard";
       } else {
-        router.push("/");
+        window.location.href = "/";
       }
     } catch (err: any) {
       setError(err.message || "Invalid credentials");

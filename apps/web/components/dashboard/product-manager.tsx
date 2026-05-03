@@ -27,7 +27,6 @@ interface Product {
   ProductName: string;
   CategoryID: number;
   UnitPrice: number;
-  UnitsInStock: number;
 }
 
 export function ProductManager() {
@@ -38,7 +37,6 @@ export function ProductManager() {
   const [formData, setFormData] = useState({
     ProductName: "",
     UnitPrice: 0,
-    UnitsInStock: 0,
     CategoryID: 1,
   });
 
@@ -63,7 +61,6 @@ export function ProductManager() {
     setFormData({
       ProductName: "",
       UnitPrice: 0,
-      UnitsInStock: 0,
       CategoryID: 1,
     });
     setIsDialogOpen(true);
@@ -74,7 +71,6 @@ export function ProductManager() {
     setFormData({
       ProductName: product.ProductName,
       UnitPrice: product.UnitPrice || 0,
-      UnitsInStock: product.UnitsInStock || 0,
       CategoryID: product.CategoryID || 1,
     });
     setIsDialogOpen(true);
@@ -144,16 +140,6 @@ export function ProductManager() {
                     required
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="stock">Stock</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    value={formData.UnitsInStock}
-                    onChange={(e) => setFormData({ ...formData, UnitsInStock: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="category">Category ID</Label>
@@ -185,7 +171,6 @@ export function ProductManager() {
                 <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -193,7 +178,7 @@ export function ProductManager() {
             <TableBody>
               {products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     No products found.
                   </TableCell>
                 </TableRow>
@@ -203,7 +188,6 @@ export function ProductManager() {
                     <TableCell className="font-medium">{product.ProductID}</TableCell>
                     <TableCell>{product.ProductName}</TableCell>
                     <TableCell>${product.UnitPrice?.toFixed(2)}</TableCell>
-                    <TableCell>{product.UnitsInStock}</TableCell>
                     <TableCell>{product.CategoryID}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

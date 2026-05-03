@@ -1,10 +1,11 @@
 import os
 import sys
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from typing import List, Dict
 import pandas as pd
+from datetime import datetime, timedelta
 
 # Add project root to sys.path to find local packages
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/db-core"))
@@ -21,8 +22,18 @@ from shared import (
 )
 from ai_engine.agent import run_agent
 from mcp_servers.tools import behavior_vector_search
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Kon AI ERP & CRM API")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def read_root():
@@ -51,7 +62,8 @@ from shared import (
     SystemAlert as SharedAlert,
     Recommendation as SharedRecommendation,
     UserCreate, User as SharedUser, Token,
-    Product as SharedProduct, ProductCreate
+    Product as SharedProduct, ProductCreate,
+    Order as SharedOrder
 )
 
 # Auth helper (inlined or imported if we moved it)
@@ -63,8 +75,6 @@ def authenticate_user(db: Session, username: str, password: str):
     if not verify_password(password, user.hashed_password):
         return False
     return user
-
-app = FastAPI(title="Kon AI ERP & CRM API")
 
 # --- AUTH ENDPOINTS ---
 
@@ -154,29 +164,34 @@ def delete_product(product_id: int, admin: User = Depends(require_admin), db: Se
 def get_dashboard_kpis(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     total_customers = db.query(Customer).count()
     total_orders = db.query(Order).count()
-    total_revenue = db.query(func.sum(Order.Freight)).scalar() or 0.0
+    # Accurate revenue from order details
+    total_revenue = db.query(
+        func.sum(OrderDetail.UnitPrice * OrderDetail.Quantity * (1 - OrderDetail.Discount))
+    ).scalar() or 0.0
+
     churn_alerts_count = db.query(SystemAlert).filter(SystemAlert.Type == "Churn", SystemAlert.IsRead == False).count()
     avg_churn_risk = db.query(func.avg(CustomerBehavior.Churn_Risk)).scalar() or 0.0
-    
+
     return {
         "total_customers": total_customers,
         "total_orders": total_orders,
-        "total_revenue": total_revenue,
+        "total_revenue": round(total_revenue, 2),
         "churn_alerts_count": churn_alerts_count,
-        "avg_churn_risk": avg_churn_risk
+        "avg_churn_risk": round(avg_churn_risk, 2)
     }
-
 @app.get("/dashboard/revenue-over-time")
 def get_revenue_over_time(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Monthly revenue for line charts."""
     query = """
     SELECT 
-        DATE_TRUNC('month', TO_DATE("orderDate", 'YYYY-MM-DD HH24:MI:SS')) as month,
-        SUM("freight") as revenue
-    FROM orders
+        DATE_TRUNC('month', TO_DATE(o."orderDate", 'YYYY-MM-DD')) as month,
+        SUM(od."unitPrice" * od."quantity" * (1 - od."discount")) as revenue
+    FROM orders o
+    JOIN order_details od ON o."orderID" = od."orderID"
     GROUP BY month
     ORDER BY month ASC
     """
+
     df = pd.read_sql(query, engine)
     df['month'] = df['month'].dt.strftime('%Y-%m')
     return df.to_dict(orient='records')
@@ -196,7 +211,7 @@ def get_segmentation_stats(db: Session = Depends(get_db), current_user: User = D
 def get_top_products(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Top 5 products for bar charts."""
     query = """
-    SELECT p."productName", COUNT(od."orderID") as total_sold
+    SELECT p."productName", SUM(od."quantity") as total_sold
     FROM order_details od
     JOIN products p ON od."productID" = p."productID"
     GROUP BY p."productName"
@@ -255,7 +270,7 @@ def create_customer(customer: SharedCustomer, db: Session = Depends(get_db)):
 
 # --- ORDER CRUD ---
 
-@app.get("/orders", response_model=List[Order])
+@app.get("/orders", response_model=List[SharedOrder])
 def get_orders(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(Order).offset(skip).limit(limit).all()
 

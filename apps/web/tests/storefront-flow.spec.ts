@@ -11,6 +11,7 @@ test.describe('Storefront Flow', () => {
     await page.click('button:has-text("Sign In")');
 
     // 3. Verify redirected to homepage or products
+    await page.waitForURL('http://localhost:3000/', { timeout: 15000 });
     await expect(page).toHaveURL('http://localhost:3000/');
 
     // 4. Click "Add to Cart" on a product

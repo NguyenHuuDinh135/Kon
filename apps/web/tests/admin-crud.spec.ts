@@ -11,7 +11,8 @@ test.describe('Admin Product CRUD', () => {
     await page.click('button:has-text("Sign In")');
 
     // 3. Verify redirected to dashboard
-    await expect(page).toHaveURL('http://localhost:3000/dashboard');
+    await page.waitForURL('**/dashboard', { timeout: 15000 });
+    await expect(page).toHaveURL(/.*dashboard/);
 
     // 4. Navigate to /dashboard/products
     await page.goto('http://localhost:3000/dashboard/products');
@@ -22,7 +23,6 @@ test.describe('Admin Product CRUD', () => {
     // 6. Fill in the form
     await page.fill('#name', 'Playwright Product');
     await page.fill('#price', '10.5');
-    await page.fill('#stock', '50');
     await page.fill('#category', '1');
 
     // 7. Click "Save changes"

@@ -82,7 +82,6 @@ class ProductBase(BaseModel):
     CategoryID: Optional[int] = None
     QuantityPerUnit: Optional[str] = None
     UnitPrice: Optional[float] = None
-    UnitsInStock: Optional[int] = None
     Discontinued: Optional[int] = 0
 
 class ProductCreate(ProductBase):

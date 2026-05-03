@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ShoppingBag, Trash2, Plus, Minus } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { Button } from "@workspace/ui/components/button";
@@ -17,9 +18,10 @@ import Link from "next/link";
 
 export function CartSheet() {
   const { items, removeItem, updateQuantity, totalPrice, totalItems } = useCart();
+  const [open, setOpen] = useState(false);
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative" aria-label="Open Cart">
           <ShoppingBag className="h-5 w-5" />
@@ -103,7 +105,7 @@ export function CartSheet() {
               <span className="font-medium text-base">Total</span>
               <span className="font-bold text-lg">${totalPrice.toFixed(2)}</span>
             </div>
-            <Button className="w-full" size="lg" asChild>
+            <Button className="w-full" size="lg" asChild onClick={() => setOpen(false)}>
               <Link href="/checkout">Checkout</Link>
             </Button>
           </SheetFooter>

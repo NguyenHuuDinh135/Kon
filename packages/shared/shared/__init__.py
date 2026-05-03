@@ -4,5 +4,12 @@ from .schemas import (
     CustomerBehavior, 
     SystemAlert, 
     DashboardKPIs, 
-    Recommendation
+    Recommendation,
+    User,
+    UserCreate,
+    Token,
+    Product,
+    ProductCreate,
+    Category,
+    OrderDetail
 )
