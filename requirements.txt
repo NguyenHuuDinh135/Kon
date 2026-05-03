@@ -1,0 +1,16 @@
+kagglehub
+pandas
+sqlalchemy
+psycopg2-binary
+python-dotenv
+google-generativeai
+langgraph
+langchain-google-genai
+fastapi
+uvicorn
+scikit-learn
+numpy
+apscheduler
+pgvector
+pytest
+pytest-mock
