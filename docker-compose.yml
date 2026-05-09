@@ -11,10 +11,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-nguyenhuudinh} -d ${DB_NAME:-kon_erp_northwind}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - kon_network
 
-  # Worker chuyên trách ETL và xử lý Agentic AI
   worker:
     build:
       context: .
@@ -31,11 +35,11 @@ services:
       - KAGGLE_KEY=${KAGGLE_KEY}
       - PYTHONPATH=/app/packages/db-core:/app/packages/shared:/app/packages/ai-engine:/app/packages/mcp-servers
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - kon_network
 
-  # API Gateway (FastAPI)
   api:
     build:
       context: .
@@ -50,9 +54,15 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-nguyenhuudinh}:${DB_PASSWORD:-kon_password}@db:5432/${DB_NAME:-kon_erp_northwind}
-      - PYTHONPATH=/app/packages/db-core:/app/packages/shared:/app/packages/ai-engine:/app/packages/mcp-servers
+      - PYTHONPATH=/app/packages/db-core:/app/packages/shared:/app/packages/ai-engine:/app/packages/mcp-servers:/app/apps/api
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - kon_network
 

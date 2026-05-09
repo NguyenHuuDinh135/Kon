@@ -1,0 +1,94 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 809131193138.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Web image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          NEXT_PUBLIC_API_URL: http://${{ secrets.ALB_DNS }}:8000
+        run: |
+          docker build -t $ECR_REGISTRY/kon-web:$IMAGE_TAG \
+            -t $ECR_REGISTRY/kon-web:latest \
+            --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+            -f apps/web/Dockerfile .
+          docker push $ECR_REGISTRY/kon-web:$IMAGE_TAG
+          docker push $ECR_REGISTRY/kon-web:latest
+
+      - name: Build and push API image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/kon-api:$IMAGE_TAG \
+            -t $ECR_REGISTRY/kon-api:latest \
+            -f apps/api/Dockerfile .
+          docker push $ECR_REGISTRY/kon-api:$IMAGE_TAG
+          docker push $ECR_REGISTRY/kon-api:latest
+
+      - name: Build and push Worker image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/kon-worker:$IMAGE_TAG \
+            -t $ECR_REGISTRY/kon-worker:latest \
+            -f apps/worker/Dockerfile .
+          docker push $ECR_REGISTRY/kon-worker:$IMAGE_TAG
+          docker push $ECR_REGISTRY/kon-worker:latest
+
+      - name: Deploy Web to ECS
+        run: |
+          aws ecs update-service \
+            --cluster kon-cluster \
+            --service kon-web-service \
+            --force-new-deployment \
+            --region $AWS_REGION
+
+      - name: Deploy API to ECS
+        run: |
+          aws ecs update-service \
+            --cluster kon-cluster \
+            --service kon-api-service \
+            --force-new-deployment \
+            --region $AWS_REGION
+
+      - name: Wait for services stable
+        run: |
+          echo "Waiting for Web service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster kon-cluster \
+            --services kon-web-service \
+            --region $AWS_REGION
+          echo "Waiting for API service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster kon-cluster \
+            --services kon-api-service \
+            --region $AWS_REGION
+          echo "All services stable!"

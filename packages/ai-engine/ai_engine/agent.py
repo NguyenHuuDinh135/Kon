@@ -1,74 +1,138 @@
+"""
+Kon AI Agent — Autonomous Business Intelligence Assistant
+=========================================================
+Uses LangGraph + Gemini to answer business questions with real data.
+Has access to 6 specialized tools for e-commerce analytics.
+"""
 import os
-import sys
-from typing import TypedDict, Annotated, Sequence, Union
+from typing import Annotated, TypedDict, Sequence
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langgraph.graph import StateGraph, END, add_messages
+from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
-
-# Add project root to sys.path to find local packages
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../mcp-servers"))
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from mcp_servers.tools import (
-    northwind_query_tool, 
-    get_customer_orders, 
-    analyze_customer_behavior,
-    behavior_vector_search
+    query_database,
+    get_customer_profile,
+    get_churn_risk_summary,
+    get_product_recommendations,
+    get_revenue_insights,
+    suggest_campaign,
+    search_similar_customers
 )
 
-# Define the tools
-tools = [
-    northwind_query_tool, 
-    get_customer_orders, 
-    analyze_customer_behavior,
-    behavior_vector_search
-]
-tool_node = ToolNode(tools)
+SYSTEM_PROMPT = """You are Kon AI, an autonomous ERP/CRM intelligence assistant for an e-commerce business.
 
-# Initialize the model
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.1-flash-lite-preview",
-    google_api_key=os.getenv("GOOGLE_API_KEY")
-) 
-llm_with_tools = llm.bind_tools(tools)
+## Your Knowledge Base
+- 100K+ orders from Brazilian e-commerce (Olist dataset)
+- 541K transaction records from Online Retail
+- 5,630 customer profiles with real churn predictions (ML-powered)
+- Customer segmentation into 5 RFM clusters (VIP, Loyal, Regular, At Risk, Lost)
+- Revenue forecasting and trend analysis
+
+## Your Capabilities
+1. **Customer Analysis**: Profile any customer, assess churn risk, find similar customers
+2. **Revenue Intelligence**: Trends, top categories, forecasting, period comparisons
+3. **Recommendations**: Product suggestions based on collaborative filtering
+4. **Campaign Strategy**: Suggest targeted campaigns based on segment analysis
+5. **Churn Prevention**: Identify at-risk customers, suggest retention actions
+6. **Semantic Search**: Find customers matching natural language descriptions
+
+## Guidelines
+- Always back your answers with data (use tools to query real numbers)
+- Be specific and actionable — not generic advice
+- When suggesting campaigns, include: target segment, discount %, channel, expected impact
+- For churn analysis, always mention the probability and contributing factors
+- Format responses clearly with bullet points for readability
+- If you don't have enough data, say so honestly
+
+## Response Format
+Structure your responses as:
+1. Direct answer to the question
+2. Supporting data points
+3. Recommended next actions (if applicable)
+"""
+
 
 class AgentState(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], add_messages]
+    messages: Annotated[Sequence[BaseMessage], lambda x, y: x + y]
 
-def call_model(state: AgentState):
-    print("--- CALLING MODEL ---")
-    messages = state["messages"]
-    response = llm_with_tools.invoke(messages)
-    return {"messages": [response]}
 
-def should_continue(state: AgentState):
-    last_message = state["messages"][-1]
-    if last_message.tool_calls:
-        return "tools"
-    return END
+def create_agent():
+    """Create the LangGraph agent with tools."""
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        return None
 
-# Build the graph
-workflow = StateGraph(AgentState)
+    model = ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash-lite",
+        google_api_key=api_key,
+        temperature=0.3,
+        max_output_tokens=2048
+    )
 
-workflow.add_node("agent", call_model)
-workflow.add_node("tools", tool_node)
+    tools = [
+        query_database,
+        get_customer_profile,
+        get_churn_risk_summary,
+        get_product_recommendations,
+        get_revenue_insights,
+        suggest_campaign,
+        search_similar_customers
+    ]
 
-workflow.set_entry_point("agent")
-workflow.add_conditional_edges("agent", should_continue)
-workflow.add_edge("tools", "agent")
+    model_with_tools = model.bind_tools(tools)
+    tool_node = ToolNode(tools)
 
-app = workflow.compile()
+    def should_continue(state: AgentState):
+        last_message = state["messages"][-1]
+        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+            return "tools"
+        return END
 
-def run_agent(input_text: str):
-    print(f"Running agent with input: {input_text}")
-    inputs = {"messages": [HumanMessage(content=input_text)]}
-    final_output = ""
-    
-    for output in app.stream(inputs):
-        for key, value in output.items():
-            print(f"Output from node '{key}': {value}")
-            if key == "agent":
-                last_msg = value["messages"][-1]
-                if isinstance(last_msg, AIMessage) and not last_msg.tool_calls:
-                    final_output = last_msg.content
-    
-    return final_output if final_output else "Agent processed the request."
+    def call_model(state: AgentState):
+        messages = [SystemMessage(content=SYSTEM_PROMPT)] + list(state["messages"])
+        response = model_with_tools.invoke(messages)
+        return {"messages": [response]}
+
+    workflow = StateGraph(AgentState)
+    workflow.add_node("agent", call_model)
+    workflow.add_node("tools", tool_node)
+    workflow.set_entry_point("agent")
+    workflow.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
+    workflow.add_edge("tools", "agent")
+
+    return workflow.compile()
+
+
+# Module-level agent instance
+_agent = None
+
+def get_agent():
+    global _agent
+    if _agent is None:
+        _agent = create_agent()
+    return _agent
+
+
+def run_agent(prompt: str) -> str:
+    """Run the AI agent with a user prompt and return the response."""
+    agent = get_agent()
+    if agent is None:
+        return "AI Agent unavailable — GOOGLE_API_KEY not configured."
+
+    try:
+        result = agent.invoke({
+            "messages": [HumanMessage(content=prompt)]
+        })
+
+        # Extract the final text response
+        messages = result.get("messages", [])
+        for msg in reversed(messages):
+            if hasattr(msg, "content") and msg.content and not hasattr(msg, "tool_calls"):
+                return msg.content
+            elif hasattr(msg, "content") and msg.content and hasattr(msg, "tool_calls") and not msg.tool_calls:
+                return msg.content
+
+        return "I processed your request but couldn't generate a text response."
+    except Exception as e:
+        return f"Agent error: {str(e)}"

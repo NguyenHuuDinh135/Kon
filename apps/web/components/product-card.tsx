@@ -9,9 +9,9 @@ import { cn } from "@workspace/ui/lib/utils";
 
 interface ProductCardProps {
   product: {
-    id: number;
+    id: string | number;
     name: string;
-    price: number;
+    price?: number;
     category?: string;
     image?: string;
     quantityPerUnit?: string;
@@ -27,7 +27,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
     addItem({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: product.price ?? 0,
       image: product.image,
     });
   };
@@ -64,7 +64,9 @@ export function ProductCard({ product, className }: ProductCardProps) {
               ID: {product.id}
             </Badge>
           )}
-          <span className="font-bold text-lg">${product.price.toFixed(2)}</span>
+          {product.price != null && (
+            <span className="font-bold text-lg">${product.price.toFixed(2)}</span>
+          )}
         </div>
         <CardTitle className="text-base line-clamp-1">{product.name}</CardTitle>
         {product.quantityPerUnit && (

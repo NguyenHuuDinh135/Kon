@@ -10,7 +10,11 @@ from db_core import get_db
 from db_core.models import User
 
 # Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "kon-secret-key-1234567890")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY or len(SECRET_KEY) < 32:
+    raise RuntimeError(
+        "JWT_SECRET_KEY environment variable must be set and at least 32 characters long."
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

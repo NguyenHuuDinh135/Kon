@@ -1,2 +1,20 @@
 from .database import engine, get_db, init_vector_extension, Base
-from .models import Customer, Order, CustomerBehavior
+from .models import (
+    User,
+    AuditLog,
+    SystemAlert,
+    Notification,
+    Customer,
+    Order,
+    OrderItem,
+    Payment,
+    Review,
+    Product,
+    Seller,
+    CategoryTranslation,
+    OnlineRetailTransaction,
+    CustomerChurn,
+    MLRecommendation,
+    MLModelMetrics,
+    Campaign,
+)

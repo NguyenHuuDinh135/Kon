@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@workspace/ui/components/table";
 import { Button } from "@workspace/ui/components/button";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogFooter
 } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
@@ -23,10 +23,12 @@ import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from "@/lib/api";
 
 interface Product {
-  ProductID: number;
-  ProductName: string;
-  CategoryID: number;
-  UnitPrice: number;
+  product_id: string;
+  product_category_name: string;
+  product_name_length: number | null;
+  product_description_length: number | null;
+  product_photos_qty: number | null;
+  product_weight_g: number | null;
 }
 
 export function ProductManager() {
@@ -35,9 +37,9 @@ export function ProductManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
-    ProductName: "",
-    UnitPrice: 0,
-    CategoryID: 1,
+    product_category_name: "",
+    product_weight_g: 0,
+    product_photos_qty: 1,
   });
 
   const loadProducts = useCallback(async () => {
@@ -45,8 +47,8 @@ export function ProductManager() {
     try {
       const data = await fetchProducts();
       setProducts(data);
-    } catch (error) {
-      console.error("Failed to fetch products", error);
+    } catch {
+      // Error handled by displaying empty state
     } finally {
       setLoading(false);
     }
@@ -59,9 +61,9 @@ export function ProductManager() {
   const handleOpenAdd = () => {
     setCurrentProduct(null);
     setFormData({
-      ProductName: "",
-      UnitPrice: 0,
-      CategoryID: 1,
+      product_category_name: "",
+      product_weight_g: 0,
+      product_photos_qty: 1,
     });
     setIsDialogOpen(true);
   };
@@ -69,20 +71,19 @@ export function ProductManager() {
   const handleOpenEdit = (product: Product) => {
     setCurrentProduct(product);
     setFormData({
-      ProductName: product.ProductName,
-      UnitPrice: product.UnitPrice || 0,
-      CategoryID: product.CategoryID || 1,
+      product_category_name: product.product_category_name || "",
+      product_weight_g: product.product_weight_g || 0,
+      product_photos_qty: product.product_photos_qty || 1,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (productId: number) => {
+  const handleDelete = async (productId: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       await deleteProduct(productId);
       loadProducts();
-    } catch (error) {
-      console.error("Delete failed", error);
+    } catch {
       alert("Failed to delete product");
     }
   };
@@ -91,14 +92,13 @@ export function ProductManager() {
     e.preventDefault();
     try {
       if (currentProduct) {
-        await updateProduct(currentProduct.ProductID, formData);
+        await updateProduct(currentProduct.product_id, formData);
       } else {
         await createProduct(formData);
       }
       setIsDialogOpen(false);
       loadProducts();
-    } catch (error) {
-      console.error("Submit failed", error);
+    } catch {
       alert("Failed to save product");
     }
   };
@@ -120,36 +120,37 @@ export function ProductManager() {
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="category">Category Name</Label>
                 <Input
-                  id="name"
-                  value={formData.ProductName}
-                  onChange={(e) => setFormData({ ...formData, ProductName: e.target.value })}
+                  id="category"
+                  value={formData.product_category_name}
+                  onChange={(e) => setFormData({ ...formData, product_category_name: e.target.value })}
+                  placeholder="e.g. electronics, furniture, toys"
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="price">Price</Label>
+                  <Label htmlFor="weight">Weight (g)</Label>
                   <Input
-                    id="price"
+                    id="weight"
                     type="number"
-                    step="0.01"
-                    value={formData.UnitPrice}
-                    onChange={(e) => setFormData({ ...formData, UnitPrice: parseFloat(e.target.value) })}
-                    required
+                    step="1"
+                    value={formData.product_weight_g}
+                    onChange={(e) => setFormData({ ...formData, product_weight_g: parseInt(e.target.value) })}
                   />
                 </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="category">Category ID</Label>
-                <Input
-                  id="category"
-                  type="number"
-                  value={formData.CategoryID}
-                  onChange={(e) => setFormData({ ...formData, CategoryID: parseInt(e.target.value) })}
-                  required
-                />
+                <div className="grid gap-2">
+                  <Label htmlFor="photos">Photos Qty</Label>
+                  <Input
+                    id="photos"
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={formData.product_photos_qty}
+                    onChange={(e) => setFormData({ ...formData, product_photos_qty: parseInt(e.target.value) })}
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -168,10 +169,10 @@ export function ProductManager() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Price</TableHead>
+                <TableHead>Product ID</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Weight (g)</TableHead>
+                <TableHead>Photos</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -184,26 +185,26 @@ export function ProductManager() {
                 </TableRow>
               ) : (
                 products.map((product) => (
-                  <TableRow key={product.ProductID}>
-                    <TableCell className="font-medium">{product.ProductID}</TableCell>
-                    <TableCell>{product.ProductName}</TableCell>
-                    <TableCell>${product.UnitPrice?.toFixed(2)}</TableCell>
-                    <TableCell>{product.CategoryID}</TableCell>
+                  <TableRow key={product.product_id}>
+                    <TableCell className="font-mono text-xs">{product.product_id.slice(0, 8)}...</TableCell>
+                    <TableCell className="capitalize">{product.product_category_name || "—"}</TableCell>
+                    <TableCell>{product.product_weight_g ?? "—"}</TableCell>
+                    <TableCell>{product.product_photos_qty ?? "—"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleOpenEdit(product)}
                         >
                           <Pencil className="h-4 w-4" />
                           <span className="sr-only">Edit</span>
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="text-destructive"
-                          onClick={() => handleDelete(product.ProductID)}
+                          onClick={() => handleDelete(product.product_id)}
                         >
                           <Trash2 className="h-4 w-4" />
                           <span className="sr-only">Delete</span>

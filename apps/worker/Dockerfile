@@ -1,22 +1,24 @@
-FROM python:3.11-slim
+# Stage 1: Build
+FROM python:3.11-slim AS builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
+# Stage 2: Runtime
+FROM python:3.11-slim
 WORKDIR /app
 
-# Cài đặt system dependencies cho psycopg2 và các thư viện khác
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Create non-root user
+RUN useradd -m -r appuser
 
-# Sao chép file requirements và cài đặt phụ thuộc
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Sao chép mã nguồn theo cấu trúc Monorepo
-COPY packages/ /app/packages/
+COPY --from=builder /install /usr/local
+COPY packages/db-core/ /app/packages/db-core/
+COPY packages/shared/ /app/packages/shared/
+COPY packages/ai-engine/ /app/packages/ai-engine/
+COPY packages/mcp-servers/ /app/packages/mcp-servers/
 COPY apps/worker/ /app/apps/worker/
 
-# Thiết lập PYTHONPATH để nhận diện local packages
-ENV PYTHONPATH="/app/packages/db-core:/app/packages/shared:${PYTHONPATH}"
+ENV PYTHONPATH=/app/packages/db-core:/app/packages/shared:/app/packages/ai-engine:/app/packages/mcp-servers:/app
 
+USER appuser
 CMD ["python", "apps/worker/main.py"]

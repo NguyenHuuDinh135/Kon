@@ -5,12 +5,14 @@ import {
   BarChart3,
   Bot,
   BrainCircuit,
+  GitBranch,
   LayoutDashboard,
   Search,
   Settings,
   Users,
   Bell,
   Package,
+  Megaphone,
 } from "lucide-react";
 
 import {
@@ -43,6 +45,29 @@ const navMain = [
   },
 ];
 
+const navPredictions = [
+  {
+    title: "All Models",
+    url: "/predictions",
+    icon: BrainCircuit,
+  },
+  {
+    title: "Decision Tree",
+    url: "/predictions/decision-tree",
+    icon: GitBranch,
+  },
+  {
+    title: "Clustering",
+    url: "/predictions/clustering",
+    icon: Users,
+  },
+  {
+    title: "Churn (Logistic)",
+    url: "/predictions/logistic-regression",
+    icon: BarChart3,
+  },
+];
+
 const navManagement = [
   {
     title: "Products",
@@ -63,6 +88,16 @@ const navManagement = [
     title: "Analytics",
     url: "/dashboard/analytics",
     icon: BarChart3,
+  },
+  {
+    title: "Notifications",
+    url: "/dashboard/notifications",
+    icon: Bell,
+  },
+  {
+    title: "Campaigns",
+    url: "/dashboard/campaigns",
+    icon: Megaphone,
   },
 ];
 
@@ -105,6 +140,24 @@ export function KonSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
         
+        <SidebarGroup>
+          <SidebarGroupLabel>ML Predictions</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navPredictions.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         <SidebarGroup>
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarGroupContent>

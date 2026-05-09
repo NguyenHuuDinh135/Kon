@@ -1,0 +1,1 @@
+Sau ngày 10/5 báo cáo nhóm cuối kỳ , nội dung báo cáo: Nhóm tự đề xuất tên đề thiết kế csdl và tìm dữ liệu huấn luyện phù hợp với đề tài sử dụng công cụ ETL cập nhật vào CSDL. Sử dụng công cụ SSAS để  huấn luyện cho cả 3 mô hình( cây quyết định, gồm cụm, hồi quy logistic). Sử dụng ngôn ngữ truy vÁn MDX và thiết kế trang web để đưa ra các dự đoán cho cả 3 mô hình này

@@ -2,6 +2,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@workspace/ui/com
 import { KonSidebar } from "@/components/kon-sidebar";
 import { Separator } from "@workspace/ui/components/separator";
 import { ModeToggle } from "@/components/mode-toggle";
+import { NotificationBell } from "@/components/notification-bell";
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,7 @@ export default function DashboardLayout({
             <h1 className="text-sm font-semibold">Kon Command Center</h1>
           </div>
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <ModeToggle />
           </div>
         </header>

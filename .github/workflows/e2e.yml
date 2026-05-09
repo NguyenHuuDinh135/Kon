@@ -7,12 +7,53 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
-    timeout-minutes: 20
+  lint-and-type-check:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run lint
+      run: npm run lint
+
+    - name: Run type check
+      run: npm run typecheck
+
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Python dependencies
+      run: |
+        pip install -r requirements.txt 2>/dev/null || true
+        pip install pytest pytest-cov
+
+    - name: Run Python tests
+      run: pytest packages/ai-engine/tests/ apps/api/tests/ -v
+      env:
+        PYTHONPATH: packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers
+
+  test:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    needs: [lint-and-type-check, python-tests]
+    steps:
+    - uses: actions/checkout@v4
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:

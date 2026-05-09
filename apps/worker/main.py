@@ -8,93 +8,271 @@ from sqlalchemy.exc import OperationalError
 from kagglehub import KaggleDatasetAdapter
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-# Add project root to sys.path to find local packages
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/db-core"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/shared"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/ai-engine"))
 
 from db_core import engine, init_vector_extension
 from ai_engine.ml_models import run_all_ml_tasks
+from ai_engine.autonomous_loop import run_autonomous_cycle
 
-def direct_etl():
-    """Initial data load."""
-    # --- 0. Wait for DB ---
-    max_retries = 5
-    retry_delay = 5
+
+def wait_for_db():
+    max_retries = 10
     for i in range(max_retries):
         try:
             init_vector_extension()
-            break
+            return True
         except OperationalError:
             if i == max_retries - 1:
                 sys.exit(1)
-            time.sleep(retry_delay)
+            time.sleep(5)
 
-    # --- 1. Load Northwind ---
-    northwind_tables = ["customers", "orders", "order_details", "products", "categories"]
-    for table in northwind_tables:
-        # Check if table exists
-        check_query = f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{table}')"
-        with engine.connect() as conn:
-            exists = conn.execute(text(check_query)).scalar()
-        
-        if not exists:
+
+def table_exists(table_name):
+    query = f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{table_name}')"
+    with engine.connect() as conn:
+        return conn.execute(text(query)).scalar()
+
+
+def load_olist_erp():
+    """Load Olist Brazilian E-Commerce (Main ERP - 9 tables)."""
+    tables_map = {
+        "olist_orders_dataset.csv": "orders",
+        "olist_order_items_dataset.csv": "order_items",
+        "olist_order_payments_dataset.csv": "payments",
+        "olist_order_reviews_dataset.csv": "reviews",
+        "olist_customers_dataset.csv": "customers",
+        "olist_products_dataset.csv": "products",
+        "olist_sellers_dataset.csv": "sellers",
+        "olist_geolocation_dataset.csv": "geolocation",
+        "product_category_name_translation.csv": "category_translation",
+    }
+
+    for csv_file, table_name in tables_map.items():
+        if not table_exists(table_name):
+            try:
+                df = kagglehub.load_dataset(
+                    KaggleDatasetAdapter.PANDAS,
+                    "olistbr/brazilian-ecommerce",
+                    csv_file,
+                )
+                # Limit geolocation to 100K rows (original has 1M+)
+                if table_name == "geolocation":
+                    df = df.drop_duplicates(subset=["geolocation_zip_code_prefix"]).head(100000)
+                df.to_sql(table_name, engine, if_exists='replace', index=False)
+                print(f"✅ Loaded {table_name} ({len(df)} rows)")
+            except Exception as e:
+                print(f"⚠️ Failed to load {table_name}: {e}")
+
+
+def load_online_retail():
+    """Load Online Retail dataset (Satellite 1 - Transaction data for RFM)."""
+    if not table_exists("online_retail"):
+        try:
             df = kagglehub.load_dataset(
                 KaggleDatasetAdapter.PANDAS,
-                "jeetahirwar/northwind-traders",
-                f"{table}.csv",
+                "tunguz/online-retail",
+                "OnlineRetail.csv",
                 pandas_kwargs={"encoding": "latin1"}
             )
-            df.to_sql(table, engine, if_exists='replace', index=False)
-            print(f"✅ Loaded {table}")
+            # Clean data
+            df = df.dropna(subset=["CustomerID"])
+            df["CustomerID"] = df["CustomerID"].astype(int)
+            df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"])
+            df["TotalAmount"] = df["Quantity"] * df["UnitPrice"]
+            # Remove negative quantities (returns) for clean analysis
+            df_clean = df[df["Quantity"] > 0]
+            df_clean.to_sql("online_retail", engine, if_exists='replace', index=False)
+            print(f"✅ Loaded online_retail ({len(df_clean)} rows)")
+        except Exception as e:
+            print(f"⚠️ Failed to load online_retail: {e}")
 
-    # --- 2. Customer Behavior (If not exists) ---
-    check_query = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'customer_behavior')"
+
+def load_ecommerce_churn():
+    """Load E-Commerce Customer Churn dataset (Satellite 2 - Real churn labels)."""
+    if not table_exists("customer_churn"):
+        try:
+            # Try loading the dataset
+            path = kagglehub.dataset_download("ankitverma2010/ecommerce-customer-churn-analysis-and-prediction")
+            # Find the CSV file in downloaded path
+            import glob
+            csv_files = glob.glob(f"{path}/**/*.csv", recursive=True)
+            if csv_files:
+                df = pd.read_csv(csv_files[0])
+            else:
+                # Try xlsx
+                xlsx_files = glob.glob(f"{path}/**/*.xlsx", recursive=True)
+                if xlsx_files:
+                    df = pd.read_excel(xlsx_files[0])
+                else:
+                    print("⚠️ No data file found in churn dataset")
+                    return
+
+            # Clean column names (remove spaces, special chars)
+            df.columns = df.columns.str.strip().str.replace(' ', '_').str.replace('(', '').str.replace(')', '')
+
+            # Fill NaN with median for numeric, mode for categorical
+            for col in df.select_dtypes(include=['float64', 'int64']).columns:
+                df[col] = df[col].fillna(df[col].median())
+            for col in df.select_dtypes(include=['object']).columns:
+                df[col] = df[col].fillna(df[col].mode().iloc[0] if not df[col].mode().empty else 'Unknown')
+
+            df.to_sql("customer_churn", engine, if_exists='replace', index=False)
+            print(f"✅ Loaded customer_churn ({len(df)} rows)")
+        except Exception as e:
+            print(f"⚠️ Failed to load customer_churn: {e}")
+
+
+def generate_churn_embeddings():
+    """Generate Gemini embeddings for customer churn profiles (for vector search)."""
+    try:
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+    except ImportError:
+        print("⚠️ langchain-google-genai not available, skipping embeddings")
+        return
+
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        print("⚠️ GOOGLE_API_KEY not set, skipping embeddings")
+        return
+
+    # Check if embeddings already exist
     with engine.connect() as conn:
-        exists = conn.execute(text(check_query)).scalar()
-    
-    if not exists:
-        df_behavior = kagglehub.load_dataset(
-            KaggleDatasetAdapter.PANDAS,
-            "vjchoudhary7/customer-segmentation-tutorial-in-python",
-            "Mall_Customers.csv",
-            pandas_kwargs={"encoding": "latin1"}
-        )
-        df_behavior.to_sql("customer_behavior", engine, if_exists='replace', index=False)
-        
-        # Add ML columns immediately after loading
-        with engine.connect() as conn:
-            conn.execute(text("ALTER TABLE customer_behavior ADD COLUMN IF NOT EXISTS embedding vector(3072);"))
-            conn.execute(text("ALTER TABLE customer_behavior ADD COLUMN IF NOT EXISTS \"Cluster\" integer;"))
-            conn.execute(text("ALTER TABLE customer_behavior ADD COLUMN IF NOT EXISTS \"Churn_Risk\" float;"))
+        try:
+            conn.execute(text("ALTER TABLE customer_churn ADD COLUMN IF NOT EXISTS embedding vector(768)"))
             conn.commit()
-        print("✅ Loaded customer_behavior and added ML columns")
+        except Exception:
+            pass
+
+        count = conn.execute(text(
+            "SELECT COUNT(*) FROM customer_churn WHERE embedding IS NOT NULL"
+        )).scalar()
+
+        if count > 100:
+            print(f"✅ Embeddings already generated ({count} records)")
+            return
+
+    print("Generating embeddings for customer_churn (this may take a few minutes)...")
+    embeddings_model = GoogleGenerativeAIEmbeddings(
+        model="models/text-embedding-004",
+        google_api_key=api_key
+    )
+
+    df = pd.read_sql("SELECT * FROM customer_churn LIMIT 200", engine)  # Limit for API quota
+
+    batch_size = 20
+    for i in range(0, len(df), batch_size):
+        batch = df.iloc[i:i+batch_size]
+        texts = []
+        for _, row in batch.iterrows():
+            text_repr = (
+                f"Customer {int(row.get('CustomerID', 0))}: "
+                f"{row.get('Gender', 'Unknown')} gender, "
+                f"Tenure {row.get('Tenure', 0)} months, "
+                f"Satisfaction {row.get('SatisfactionScore', 0)}/5, "
+                f"{row.get('OrderCount', 0)} orders, "
+                f"Last order {row.get('DaySinceLastOrder', 0)} days ago, "
+                f"Prefers {row.get('PreferedOrderCat', 'unknown')} via {row.get('PreferredPaymentMode', 'unknown')}, "
+                f"Cashback ${row.get('CashbackAmount', 0):.0f}, "
+                f"{'Complained' if row.get('Complain') == 1 else 'No complaints'}, "
+                f"City tier {row.get('CityTier', 0)}"
+            )
+            texts.append(text_repr)
+
+        try:
+            vectors = embeddings_model.embed_documents(texts)
+            with engine.connect() as conn:
+                for j, vector in enumerate(vectors):
+                    cid = int(batch.iloc[j]['CustomerID'])
+                    conn.execute(text(
+                        "UPDATE customer_churn SET embedding = :vec WHERE \"CustomerID\" = :cid"
+                    ), {"vec": str(vector), "cid": cid})
+                conn.commit()
+            print(f"  Embedded batch {i//batch_size + 1}/{(len(df)-1)//batch_size + 1}")
+        except Exception as e:
+            print(f"  ⚠️ Batch error: {e}")
+
+        time.sleep(2)  # Rate limiting
+
+    print("✅ Embeddings generation complete")
+
+
+def create_indexes():
+    """Create indexes for performance on large tables."""
+    indexes = [
+        "CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id)",
+        "CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)",
+        "CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id)",
+        "CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id)",
+        "CREATE INDEX IF NOT EXISTS idx_reviews_order ON reviews(order_id)",
+        'CREATE INDEX IF NOT EXISTS idx_retail_customer ON online_retail("CustomerID")',
+        'CREATE INDEX IF NOT EXISTS idx_retail_date ON online_retail("InvoiceDate")',
+        'CREATE INDEX IF NOT EXISTS idx_churn_id ON customer_churn("CustomerID")',
+    ]
+    with engine.connect() as conn:
+        for idx_sql in indexes:
+            try:
+                conn.execute(text(idx_sql))
+            except Exception:
+                pass
+        conn.commit()
+    print("✅ Indexes created")
+
+
+def direct_etl():
+    """Full ETL pipeline: Load all 3 datasets into PostgreSQL."""
+    wait_for_db()
+
+    print("=" * 60)
+    print("STARTING ETL PIPELINE")
+    print("=" * 60)
+
+    print("\n[1/5] Loading Olist E-Commerce ERP (9 tables)...")
+    load_olist_erp()
+
+    print("\n[2/5] Loading Online Retail transactions (541K rows)...")
+    load_online_retail()
+
+    print("\n[3/5] Loading E-Commerce Churn dataset (5,630 rows)...")
+    load_ecommerce_churn()
+
+    print("\n[4/5] Creating indexes...")
+    create_indexes()
+
+    print("\n[5/5] Generating embeddings (vector search)...")
+    generate_churn_embeddings()
+
+    print("\n" + "=" * 60)
+    print("ETL COMPLETE")
+    print("=" * 60)
+
 
 def scheduled_ml_tasks():
     print("⏰ Starting scheduled ML tasks...")
     try:
-        # Run ML logic
         run_all_ml_tasks()
-        print("✅ Scheduled ML tasks completed.")
+        # Run autonomous cycle after ML training
+        run_autonomous_cycle()
+        print("✅ Scheduled tasks completed.")
     except Exception as e:
-        print(f"❌ Error in scheduled ML tasks: {e}")
+        print(f"❌ Error: {e}")
+
 
 def main():
-    # 1. Run initial ETL
     direct_etl()
-    
-    # 2. Setup Scheduler
+
     scheduler = BlockingScheduler()
-    # Run every 4 hours
     scheduler.add_job(scheduled_ml_tasks, 'interval', hours=4)
-    # Also run once at start
-    scheduler.add_job(scheduled_ml_tasks, 'date', run_date=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time() + 10)))
-    
+    scheduler.add_job(scheduled_ml_tasks, 'date',
+                      run_date=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time() + 30)))
+
     print("🚀 Worker started with APScheduler.")
     try:
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
         pass
+
 
 if __name__ == "__main__":
     main()

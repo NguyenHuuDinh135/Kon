@@ -1,18 +1,25 @@
-FROM python:3.11-slim
+# Stage 1: Build
+FROM python:3.11-slim AS builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
+# Stage 2: Runtime
+FROM python:3.11-slim
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Create non-root user
+RUN useradd -m -r appuser
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY packages/ /app/packages/
+COPY --from=builder /install /usr/local
+COPY packages/db-core/ /app/packages/db-core/
+COPY packages/shared/ /app/packages/shared/
+COPY packages/ai-engine/ /app/packages/ai-engine/
+COPY packages/mcp-servers/ /app/packages/mcp-servers/
 COPY apps/api/ /app/apps/api/
 
-ENV PYTHONPATH="/app/packages/db-core:/app/packages/shared:${PYTHONPATH}"
+ENV PYTHONPATH=/app/packages/db-core:/app/packages/shared:/app/packages/ai-engine:/app/packages/mcp-servers:/app/apps/api:/app
 
-CMD ["python", "apps/api/main.py"]
+USER appuser
+EXPOSE 8000
+CMD ["uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

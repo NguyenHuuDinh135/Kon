@@ -1,242 +1,234 @@
 import os
 import sys
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import text
 from typing import List, Dict
-import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
 
 # Add project root to sys.path to find local packages
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/db-core"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/shared"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/ai-engine"))
 
-from db_core import get_db, engine
-from db_core.models import Customer, Order, CustomerBehavior, SystemAlert, MLRecommendation
+from db_core import get_db
+from db_core.database import engine
+from db_core.models import Customer, Order, OrderItem, User, Product
 from shared import (
-    Customer as SharedCustomer, 
-    DashboardKPIs, 
-    SystemAlert as SharedAlert,
-    Recommendation as SharedRecommendation
+    Customer as SharedCustomer,
+    Product as SharedProduct,
+    Order as SharedOrder,
 )
 from ai_engine.agent import run_agent
-from mcp_servers.tools import behavior_vector_search
 from fastapi.middleware.cors import CORSMiddleware
+from auth import get_current_user, require_admin
 
+from routers.auth import router as auth_router
+from routers.predictions import router as predictions_router
+from routers.analytics import router as analytics_router
+from routers.notifications import router as notifications_router
+from routers.campaigns import router as campaigns_router
+
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Kon AI ERP & CRM API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
+# Security Headers Middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Include routers
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(predictions_router, tags=["predictions"])
+app.include_router(analytics_router, tags=["analytics"])
+app.include_router(notifications_router)
+app.include_router(campaigns_router)
+
+
 @app.get("/")
-def read_root():
+@limiter.limit("60/minute")
+def read_root(request: Request):
     return {"message": "Welcome to Kon AI API", "status": "running"}
 
+
 @app.get("/health")
-def health_check():
+@limiter.limit("60/minute")
+def health_check(request: Request):
     return {"status": "healthy"}
 
-from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
-from auth import (
-    create_access_token, 
-    get_current_user, 
-    require_admin,
-    get_password_hash,
-    ACCESS_TOKEN_EXPIRE_MINUTES
-)
-from db_core.models import (
-    Customer, Order, CustomerBehavior, SystemAlert, MLRecommendation,
-    User, Product, Category, OrderDetail, AuditLog
-)
-from shared import (
-    Customer as SharedCustomer, 
-    DashboardKPIs, 
-    SystemAlert as SharedAlert,
-    Recommendation as SharedRecommendation,
-    UserCreate, User as SharedUser, Token,
-    Product as SharedProduct, ProductCreate,
-    Order as SharedOrder
-)
 
-# Auth helper (inlined or imported if we moved it)
-def authenticate_user(db: Session, username: str, password: str):
-    from auth import verify_password
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
+@app.get("/health/detailed")
+async def detailed_health():
+    """Detailed health check with dependency status."""
+    checks = {}
 
-# --- AUTH ENDPOINTS ---
+    # Database check
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        checks["database"] = {"status": "healthy"}
+    except Exception as e:
+        checks["database"] = {"status": "unhealthy", "error": str(e)}
 
-@app.post("/auth/register", response_model=SharedUser)
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.username == user.username).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
-    
-    hashed_pwd = get_password_hash(user.password)
-    new_user = User(
-        username=user.username,
-        email=user.email,
-        hashed_password=hashed_pwd,
-        role=user.role
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    # Check table counts
+    try:
+        with engine.connect() as conn:
+            orders_count = conn.execute(text("SELECT COUNT(*) FROM orders")).scalar()
+            churn_count = conn.execute(text("SELECT COUNT(*) FROM customer_churn")).scalar()
+        checks["data"] = {
+            "orders": orders_count,
+            "churn_customers": churn_count,
+            "status": "loaded" if orders_count > 0 else "empty",
+        }
+    except Exception:
+        checks["data"] = {"status": "unknown"}
 
-@app.post("/auth/login", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    overall = "healthy" if all(c.get("status") != "unhealthy" for c in checks.values()) else "degraded"
+    return {"status": overall, "checks": checks}
 
-@app.get("/auth/me", response_model=SharedUser)
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return current_user
 
 # --- PRODUCT CRUD ---
 
+
 @app.get("/products", response_model=List[SharedProduct])
-def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(Product).offset(skip).limit(limit).all()
+def get_products(
+    skip: int = 0,
+    limit: int = 100,
+    category: str = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(Product)
+    if category:
+        query = query.filter(Product.product_category_name == category)
+    return query.offset(skip).limit(limit).all()
+
 
 @app.get("/products/{product_id}", response_model=SharedProduct)
-def get_product(product_id: int, db: Session = Depends(get_db)):
-    product = db.query(Product).filter(Product.ProductID == product_id).first()
+def get_product(product_id: str, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.product_id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@app.post("/products", response_model=SharedProduct)
-def create_product(product: ProductCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    db_product = Product(**product.dict())
-    db.add(db_product)
-    db.commit()
-    db.refresh(db_product)
-    return db_product
-
-@app.put("/products/{product_id}", response_model=SharedProduct)
-def update_product(product_id: int, product: ProductCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    db_product = db.query(Product).filter(Product.ProductID == product_id).first()
-    if not db_product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    
-    for key, value in product.dict().items():
-        setattr(db_product, key, value)
-    
-    db.commit()
-    db.refresh(db_product)
-    return db_product
 
 @app.delete("/products/{product_id}")
-def delete_product(product_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    db_product = db.query(Product).filter(Product.ProductID == product_id).first()
+def delete_product(product_id: str, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    db_product = db.query(Product).filter(Product.product_id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
     db.delete(db_product)
     db.commit()
     return {"message": "Product deleted"}
 
-# --- PROTECTED ANALYTICS ---
 
-@app.get("/dashboard/kpis", response_model=DashboardKPIs)
-def get_dashboard_kpis(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    total_customers = db.query(Customer).count()
-    total_orders = db.query(Order).count()
-    # Accurate revenue from order details
-    total_revenue = db.query(
-        func.sum(OrderDetail.UnitPrice * OrderDetail.Quantity * (1 - OrderDetail.Discount))
-    ).scalar() or 0.0
+# --- CUSTOMER CRUD ---
 
-    churn_alerts_count = db.query(SystemAlert).filter(SystemAlert.Type == "Churn", SystemAlert.IsRead == False).count()
-    avg_churn_risk = db.query(func.avg(CustomerBehavior.Churn_Risk)).scalar() or 0.0
 
-    return {
-        "total_customers": total_customers,
-        "total_orders": total_orders,
-        "total_revenue": round(total_revenue, 2),
-        "churn_alerts_count": churn_alerts_count,
-        "avg_churn_risk": round(avg_churn_risk, 2)
-    }
-@app.get("/dashboard/revenue-over-time")
-def get_revenue_over_time(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Monthly revenue for line charts."""
-    query = """
-    SELECT 
-        DATE_TRUNC('month', TO_DATE(o."orderDate", 'YYYY-MM-DD')) as month,
-        SUM(od."unitPrice" * od."quantity" * (1 - od."discount")) as revenue
-    FROM orders o
-    JOIN order_details od ON o."orderID" = od."orderID"
-    GROUP BY month
-    ORDER BY month ASC
-    """
+@app.get("/customers", response_model=List[SharedCustomer])
+def get_customers(
+    skip: int = 0,
+    limit: int = 100,
+    state: str = None,
+    city: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = db.query(Customer)
+    if state:
+        query = query.filter(Customer.customer_state == state)
+    if city:
+        query = query.filter(Customer.customer_city == city)
+    return query.offset(skip).limit(limit).all()
 
-    df = pd.read_sql(query, engine)
-    df['month'] = df['month'].dt.strftime('%Y-%m')
-    return df.to_dict(orient='records')
 
-@app.get("/dashboard/segmentation-stats")
-def get_segmentation_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Customer count per K-Means cluster for pie charts."""
-    query = """
-    SELECT "Cluster", COUNT(*) as count
-    FROM customer_behavior
-    GROUP BY "Cluster"
-    """
-    df = pd.read_sql(query, engine)
-    return df.to_dict(orient='records')
+@app.get("/customers/{customer_id}", response_model=SharedCustomer)
+def get_customer(customer_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    customer = db.query(Customer).filter(Customer.customer_id == customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return customer
 
-@app.get("/dashboard/top-products")
-def get_top_products(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Top 5 products for bar charts."""
-    query = """
-    SELECT p."productName", SUM(od."quantity") as total_sold
-    FROM order_details od
-    JOIN products p ON od."productID" = p."productID"
-    GROUP BY p."productName"
-    ORDER BY total_sold DESC
-    LIMIT 5
-    """
-    df = pd.read_sql(query, engine)
-    return df.to_dict(orient='records')
 
-@app.get("/alerts", response_model=List[SharedAlert])
-def get_alerts(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(SystemAlert).order_by(SystemAlert.CreatedAt.desc()).limit(50).all()
+# --- ORDER CRUD ---
 
-@app.get("/recommendations/{customer_id}", response_model=List[SharedRecommendation])
-def get_recommendations(customer_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(MLRecommendation).filter(MLRecommendation.CustomerID == customer_id).all()
 
-@app.get("/search/behavior")
-def search_behavior(query: str, limit: int = 5, current_user: User = Depends(get_current_user)):
-    """Semantic search for customer behaviors."""
-    try:
-        results = behavior_vector_search.invoke({"query": query, "limit": limit})
-        return {"query": query, "results": results}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/orders", response_model=List[SharedOrder])
+def get_orders(
+    skip: int = 0,
+    limit: int = 100,
+    status_filter: str = None,
+    customer_id: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = db.query(Order)
+    if status_filter:
+        query = query.filter(Order.order_status == status_filter)
+    if customer_id:
+        query = query.filter(Order.customer_id == customer_id)
+    return query.order_by(Order.order_purchase_timestamp.desc()).offset(skip).limit(limit).all()
+
+
+@app.post("/orders")
+def create_order(order_data: Dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Create an order with order items (Olist schema)."""
+    import uuid
+
+    order_id = order_data.get("order_id", str(uuid.uuid4()))
+    new_order = Order(
+        order_id=order_id,
+        customer_id=order_data.get("customer_id"),
+        order_status=order_data.get("order_status", "created"),
+        order_purchase_timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+    db.add(new_order)
+    db.flush()
+
+    for idx, item in enumerate(order_data.get("items", []), start=1):
+        order_item = OrderItem(
+            order_id=order_id,
+            order_item_id=idx,
+            product_id=item.get("product_id"),
+            seller_id=item.get("seller_id"),
+            price=item.get("price", 0.0),
+            freight_value=item.get("freight_value", 0.0),
+        )
+        db.add(order_item)
+
+    db.commit()
+    return {"message": "Order created", "order_id": order_id}
+
+
+# --- MISC ENDPOINTS ---
+
 
 @app.post("/agent/run")
 def trigger_agent(prompt: str, current_user: User = Depends(get_current_user)):
@@ -246,60 +238,6 @@ def trigger_agent(prompt: str, current_user: User = Depends(get_current_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- CUSTOMER CRUD ---
-
-@app.get("/customers", response_model=List[SharedCustomer])
-def get_customers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Customer).offset(skip).limit(limit).all()
-
-@app.get("/customers/{customer_id}", response_model=SharedCustomer)
-def get_customer(customer_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    customer = db.query(Customer).filter(Customer.CustomerID == customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found")
-    return customer
-
-@app.post("/customers", response_model=SharedCustomer)
-def create_customer(customer: SharedCustomer, db: Session = Depends(get_db)):
-    # This can be used for Shopper registration
-    db_customer = Customer(**customer.dict())
-    db.add(db_customer)
-    db.commit()
-    db.refresh(db_customer)
-    return db_customer
-
-# --- ORDER CRUD ---
-
-@app.get("/orders", response_model=List[SharedOrder])
-def get_orders(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Order).offset(skip).limit(limit).all()
-
-@app.post("/orders")
-def create_order(order_data: Dict, db: Session = Depends(get_db)):
-    """Simplified order creation (Checkout)."""
-    # Logic to create Order and OrderDetails
-    new_order = Order(
-        CustomerID=order_data.get("CustomerID"),
-        OrderDate=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        Freight=order_data.get("Freight", 0.0)
-    )
-    db.add(new_order)
-    db.commit()
-    db.refresh(new_order)
-    
-    # Add OrderDetails if provided
-    for item in order_data.get("items", []):
-        detail = OrderDetail(
-            OrderID=new_order.OrderID,
-            ProductID=item["ProductID"],
-            UnitPrice=item["UnitPrice"],
-            Quantity=item["Quantity"],
-            Discount=item.get("Discount", 0.0)
-        )
-        db.add(detail)
-    db.commit()
-    
-    return {"message": "Order created", "order_id": new_order.OrderID}
 
 if __name__ == "__main__":
     import uvicorn

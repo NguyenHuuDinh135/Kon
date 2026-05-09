@@ -17,7 +17,7 @@ interface Message {
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hello! I am Kon AI. How can I help you find the perfect products today?" }
+    { role: "assistant", content: "Hello! I am Kon AI, your business intelligence assistant. I can analyze customers, revenue trends, churn risks, and suggest campaigns. How can I help?" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -111,7 +111,7 @@ export function ChatInterface() {
       <div className="p-4 border-t bg-background/80">
         <div className="max-w-3xl mx-auto flex gap-2">
           <Input 
-            placeholder="Ask Kon AI... (e.g., 'Recommend some beverages')" 
+            placeholder="Ask Kon AI... (e.g., 'Who are our highest churn risk customers?')"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
@@ -130,10 +130,12 @@ export function ChatInterface() {
         </div>
         <div className="max-w-3xl mx-auto mt-2 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
            {[
-             "Recommend some beverages", 
-             "What are your best sellers?", 
-             "Find products under $20", 
-             "Tell me about Kon AI"
+             "Who are our highest churn risk customers?",
+             "Show me revenue insights and trends",
+             "Suggest a retention campaign for at-risk customers",
+             "Find customers similar to: high spenders who haven't ordered recently",
+             "What's our customer satisfaction looking like?",
+             "Recommend products for customer CUST_001"
            ].map((suggestion) => (
              <button
                 key={suggestion}

@@ -135,7 +135,7 @@ export async function createProduct(productData: any) {
   return res.json();
 }
 
-export async function updateProduct(productId: number, productData: any) {
+export async function updateProduct(productId: string, productData: any) {
   const res = await fetchWithAuth(`${API_BASE_URL}/products/${productId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -145,7 +145,7 @@ export async function updateProduct(productId: number, productData: any) {
   return res.json();
 }
 
-export async function deleteProduct(productId: number) {
+export async function deleteProduct(productId: string) {
   const res = await fetchWithAuth(`${API_BASE_URL}/products/${productId}`, {
     method: "DELETE",
   });
@@ -162,3 +162,142 @@ export async function createOrder(orderData: any) {
   if (!res.ok) throw new Error("Failed to create order");
   return res.json();
 }
+
+// --- ML PREDICTIONS API ---
+
+export async function fetchDecisionTreePredictions() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/predictions/decision-tree`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch decision tree predictions");
+  return res.json();
+}
+
+export async function fetchClusteringPredictions() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/predictions/clustering`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch clustering predictions");
+  return res.json();
+}
+
+export async function fetchLogisticRegressionPredictions() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/predictions/logistic-regression`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch logistic regression predictions");
+  return res.json();
+}
+
+export async function fetchModelComparison() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/predictions/compare`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch model comparison");
+  return res.json();
+}
+
+export async function fetchModelMetrics() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/models/metrics`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch model metrics");
+  return res.json();
+}
+
+export async function fetchMDXRevenueBySegment() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/analytics/mdx/revenue-by-segment`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch MDX revenue");
+  return res.json();
+}
+
+export async function fetchMDXChurnByDemographics() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/analytics/mdx/churn-by-demographics`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch MDX churn demographics");
+  return res.json();
+}
+
+export async function fetchMDXSpendingDistribution() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/analytics/mdx/spending-distribution`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch MDX spending distribution");
+  return res.json();
+}
+
+export async function fetchCLV() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/analytics/clv`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch CLV");
+  return res.json();
+}
+
+export async function fetchRFMScores() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/analytics/rfm-scores`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch RFM scores");
+  return res.json();
+}
+
+export async function fetchEvaluationReport() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/models/evaluation-report`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch evaluation report");
+  return res.json();
+}
+
+// --- FORECAST API ---
+
+export async function fetchForecast() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/analytics/forecast`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch forecast");
+  return res.json();
+}
+
+// --- AI INSIGHTS API ---
+
+export async function fetchAIInsights() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/analytics/ai-insights`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch AI insights");
+  return res.json();
+}
+
+// --- NOTIFICATIONS API ---
+
+export async function fetchNotifications() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/notifications`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch notifications");
+  return res.json();
+}
+
+export async function markNotificationRead(id: number) {
+  const res = await fetchWithAuth(`${API_BASE_URL}/notifications/${id}/read`, { method: 'PUT' });
+  if (!res.ok) throw new Error("Failed to mark notification");
+  return res.json();
+}
+
+export async function fetchUnreadCount() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/notifications/unread-count`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch unread count");
+  return res.json();
+}
+
+// --- CAMPAIGNS API ---
+
+export async function fetchCampaigns() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/campaigns`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch campaigns");
+  return res.json();
+}
+
+export async function createCampaign(data: {
+  name: string;
+  segment: string;
+  discount_percent: number;
+}) {
+  const res = await fetchWithAuth(`${API_BASE_URL}/campaigns`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create campaign");
+  return res.json();
+}
+
+export async function approveCampaign(id: number) {
+  const res = await fetchWithAuth(`${API_BASE_URL}/campaigns/${id}/approve`, { method: 'PUT' });
+  if (!res.ok) throw new Error("Failed to approve campaign");
+  return res.json();
+}
+
+export async function executeCampaign(id: number) {
+  const res = await fetchWithAuth(`${API_BASE_URL}/campaigns/${id}/execute`, { method: 'PUT' });
+  if (!res.ok) throw new Error("Failed to execute campaign");
+  return res.json();
+}
+
