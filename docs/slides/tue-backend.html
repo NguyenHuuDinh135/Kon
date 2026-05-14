@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nguyễn Minh Tuệ — Hướng dẫn Backend</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--primary:#22c55e;--green:#22c55e;--orange:#f59e0b}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:40px;max-width:900px;margin:0 auto}
+h1{font-size:2rem;font-weight:800;margin-bottom:8px;color:#fff}
+h2{font-size:1.4rem;font-weight:700;margin-top:48px;margin-bottom:16px;color:#fff;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:1.1rem;font-weight:600;margin-top:24px;margin-bottom:8px;color:var(--primary)}
+p{margin-bottom:12px;color:var(--muted)}
+.badge{display:inline-block;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(34,197,94,0.15);color:var(--primary);margin-bottom:16px}
+code{background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.9em;color:var(--green)}
+pre{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;margin:12px 0;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0}
+.file-path{font-family:monospace;font-size:13px;color:var(--orange);background:rgba(245,158,11,0.1);padding:4px 10px;border-radius:4px;display:inline-block;margin:4px 0}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+th{text-align:left;padding:10px;background:var(--surface);color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border)}
+.note{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:16px;margin:16px 0}
+.note strong{color:var(--primary)}
+ul,ol{margin:8px 0 16px 24px}
+li{margin:4px 0;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<span class="badge">Backend Developer</span>
+<h1>Nguyễn Minh Tuệ — Tài liệu hướng dẫn</h1>
+<p>Phần việc: API endpoints (products, orders, notifications) + Database queries + Testing</p>
+
+<h2>1. Công nghệ cần học</h2>
+
+<table>
+<tr><th>Công nghệ</th><th>Mục đích</th><th>Tài liệu</th></tr>
+<tr><td>Python 3.11+</td><td>Ngôn ngữ lập trình</td><td>python.org</td></tr>
+<tr><td>FastAPI</td><td>Web framework (tạo API)</td><td>fastapi.tiangolo.com</td></tr>
+<tr><td>SQLAlchemy</td><td>ORM (truy vấn database)</td><td>docs.sqlalchemy.org</td></tr>
+<tr><td>Pydantic</td><td>Validation (kiểm tra input)</td><td>docs.pydantic.dev</td></tr>
+<tr><td>PostgreSQL</td><td>Database</td><td>postgresql.org/docs</td></tr>
+<tr><td>pytest</td><td>Testing framework</td><td>docs.pytest.org</td></tr>
+</table>
+
+<h2>2. Cấu trúc thư mục</h2>
+
+<pre><code>apps/api/
+├── main.py                ← Entry point (khởi tạo FastAPI app)
+├── routers/
+│   ├── auth.py            ← Login, Register (đã có)
+│   ├── analytics.py       ← Dashboard APIs (đã có)
+│   ├── predictions.py     ← ML APIs (đã có)
+│   ├── campaigns.py       ← Campaigns CRUD ← Bạn code
+│   └── ...
+├── tests/
+│   └── test_api.py        ← Bạn viết tests
+
+packages/db-core/
+├── db_core/
+│   ├── __init__.py        ← Database connection (engine)
+│   └── models.py          ← SQLAlchemy models (bảng)
+
+packages/shared/
+└── shared/
+    └── schemas.py         ← Pydantic schemas (input/output format)</code></pre>
+
+<h2>3. FastAPI cơ bản</h2>
+
+<p>FastAPI tạo API endpoint cực đơn giản:</p>
+
+<pre><code>from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
+from db_core import engine
+
+router = APIRouter()
+
+# GET endpoint — Lấy danh sách
+@router.get("/products")
+def get_products(search: str = None):
+    with engine.connect() as conn:
+        if search:
+            result = conn.execute(text(
+                "SELECT * FROM products WHERE product_category_name ILIKE :s LIMIT 50"
+            ), {"s": f"%{search}%"})
+        else:
+            result = conn.execute(text("SELECT * FROM products LIMIT 50"))
+        rows = result.fetchall()
+        return [dict(zip(result.keys(), row)) for row in rows]
+
+# POST endpoint — Tạo mới
+@router.post("/orders")
+def create_order(data: dict):
+    # Validate input
+    if not data.get("product_id"):
+        raise HTTPException(status_code=400, detail="product_id required")
+    # Insert to database
+    with engine.connect() as conn:
+        conn.execute(text(
+            "INSERT INTO orders (product_id, quantity) VALUES (:pid, :qty)"
+        ), {"pid": data["product_id"], "qty": data.get("quantity", 1)})
+        conn.commit()
+    return {"message": "Order created"}</code></pre>
+
+<h2>4. Endpoints bạn cần viết</h2>
+
+<h3>4.1. Products CRUD</h3>
+<div class="file-path">apps/api/routers/ (trong file hiện có)</div>
+
+<pre><code># GET /products — Lấy danh sách sản phẩm
+@router.get("/products")
+def get_products(search: str = None, limit: int = 50):
+    with engine.connect() as conn:
+        query = """
+            SELECT product_id, product_category_name,
+                   product_weight_g, product_length_cm
+            FROM products
+        """
+        if search:
+            query += " WHERE product_category_name ILIKE :s"
+            result = conn.execute(text(query + " LIMIT :lim"),
+                                  {"s": f"%{search}%", "lim": limit})
+        else:
+            result = conn.execute(text(query + " LIMIT :lim"), {"lim": limit})
+        return [dict(zip(result.keys(), row)) for row in result.fetchall()]</code></pre>
+
+<h3>4.2. Orders CRUD</h3>
+
+<pre><code># GET /orders — Lấy danh sách đơn hàng
+@router.get("/orders")
+def get_orders(limit: int = 50):
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT o.order_id, o.customer_id, o.order_status,
+                   o.order_purchase_timestamp,
+                   SUM(oi.price + oi.freight_value) as total
+            FROM orders o
+            LEFT JOIN order_items oi ON o.order_id = oi.order_id
+            GROUP BY o.order_id, o.customer_id, o.order_status,
+                     o.order_purchase_timestamp
+            ORDER BY o.order_purchase_timestamp DESC
+            LIMIT :lim
+        """), {"lim": limit})
+        return [dict(zip(result.keys(), row)) for row in result.fetchall()]</code></pre>
+
+<h3>4.3. Notifications</h3>
+
+<pre><code># GET /notifications — Danh sách thông báo
+@router.get("/notifications")
+def get_notifications():
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT id, title, message, read, created_at
+            FROM notifications
+            ORDER BY created_at DESC
+            LIMIT 50
+        """))
+        return [dict(zip(result.keys(), row)) for row in result.fetchall()]
+
+# GET /notifications/unread-count
+@router.get("/notifications/unread-count")
+def unread_count():
+    with engine.connect() as conn:
+        result = conn.execute(text(
+            "SELECT COUNT(*) FROM notifications WHERE read = false"
+        ))
+        return {"count": result.scalar()}
+
+# PUT /notifications/read-all — Đánh dấu tất cả đã đọc
+@router.put("/notifications/read-all")
+def mark_all_read():
+    with engine.connect() as conn:
+        conn.execute(text("UPDATE notifications SET read = true WHERE read = false"))
+        conn.commit()
+    return {"message": "All marked as read"}</code></pre>
+
+<h2>5. Database — Các bảng quan trọng</h2>
+
+<table>
+<tr><th>Bảng</th><th>Mô tả</th><th>Columns chính</th></tr>
+<tr><td>orders</td><td>Đơn hàng Olist</td><td>order_id, customer_id, order_status, order_purchase_timestamp</td></tr>
+<tr><td>order_items</td><td>Chi tiết đơn</td><td>order_id, product_id, price, freight_value</td></tr>
+<tr><td>products</td><td>Sản phẩm</td><td>product_id, product_category_name, product_weight_g</td></tr>
+<tr><td>customers</td><td>Khách hàng Olist</td><td>customer_id, customer_city, customer_state</td></tr>
+<tr><td>customer_churn</td><td>Dữ liệu churn</td><td>CustomerID, Churn, Tenure, SatisfactionScore, OrderCount</td></tr>
+<tr><td>notifications</td><td>Thông báo</td><td>id, title, message, read, created_at</td></tr>
+<tr><td>campaigns</td><td>Chiến dịch</td><td>id, name, segment, status, created_at</td></tr>
+</table>
+
+<div class="note">
+<strong>Lưu ý tên cột:</strong> Bảng Olist dùng snake_case (<code>order_id</code>), bảng churn dùng PascalCase (<code>CustomerID</code>, <code>OrderCount</code>). Khi viết SQL cho bảng churn, phải dùng ngoặc kép: <code>"CustomerID"</code>.
+</div>
+
+<h2>6. Viết Tests (pytest)</h2>
+
+<div class="file-path">apps/api/tests/test_api.py</div>
+
+<pre><code>import pytest
+from fastapi.testclient import TestClient
+from apps.api.main import app
+
+client = TestClient(app)
+
+# Test lấy danh sách sản phẩm
+def test_get_products():
+    response = client.get("/products")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+
+# Test lấy đơn hàng (cần auth)
+def test_get_orders_unauthorized():
+    response = client.get("/orders")
+    assert response.status_code == 401  # Chưa login
+
+def test_get_orders_authorized():
+    # Login trước
+    login = client.post("/auth/login", json={
+        "username": "admin", "password": "admin123"
+    })
+    token = login.json()["access_token"]
+
+    # Gọi API với token
+    response = client.get("/orders", headers={
+        "Authorization": f"Bearer {token}"
+    })
+    assert response.status_code == 200
+
+# Test health check
+def test_health():
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
+
+# Test notifications
+def test_get_notifications():
+    login = client.post("/auth/login", json={
+        "username": "admin", "password": "admin123"
+    })
+    token = login.json()["access_token"]
+    response = client.get("/notifications", headers={
+        "Authorization": f"Bearer {token}"
+    })
+    assert response.status_code == 200</code></pre>
+
+<h3>Chạy tests:</h3>
+
+<pre><code># Cài pytest
+pip install pytest httpx
+
+# Chạy tests
+cd Kon
+PYTHONPATH=packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers \
+  pytest apps/api/tests/ -v</code></pre>
+
+<h2>7. Cách chạy API standalone</h2>
+
+<pre><code># Bước 1: Chạy database
+docker compose up db -d
+
+# Bước 2: Chạy API
+cd Kon
+export PYTHONPATH=packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers
+export DATABASE_URL=postgresql://nguyenhuudinh:kon_password@localhost:5432/kon_erp_northwind
+export JWT_SECRET_KEY=my-super-secret-key-at-least-32-chars
+
+uvicorn apps.api.main:app --reload --port 8000
+
+# Bước 3: Mở Swagger docs
+# http://localhost:8000/docs</code></pre>
+
+<div class="note">
+<strong>Swagger UI:</strong> Mở <code>http://localhost:8000/docs</code> để xem tất cả API endpoints, thử gọi trực tiếp từ browser. Rất tiện cho testing!
+</div>
+
+<h2>8. SQL cơ bản cần biết</h2>
+
+<pre><code>-- Lấy 10 đơn hàng gần nhất
+SELECT * FROM orders ORDER BY order_purchase_timestamp DESC LIMIT 10;
+
+-- Đếm đơn hàng theo trạng thái
+SELECT order_status, COUNT(*) FROM orders GROUP BY order_status;
+
+-- Join orders + items để tính tổng
+SELECT o.order_id, SUM(oi.price) as total
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY o.order_id;
+
+-- Tìm khách hàng có churn risk cao
+SELECT "CustomerID", "Churn_Probability"
+FROM customer_churn
+WHERE "Churn_Probability" > 0.7
+ORDER BY "Churn_Probability" DESC;</code></pre>
+
+</body>
+</html>

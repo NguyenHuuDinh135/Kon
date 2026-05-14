@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trần Xuân Trường — Hướng dẫn Frontend</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--primary:#8b5cf6;--green:#22c55e;--orange:#f59e0b}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:40px;max-width:900px;margin:0 auto}
+h1{font-size:2rem;font-weight:800;margin-bottom:8px;color:#fff}
+h2{font-size:1.4rem;font-weight:700;margin-top:48px;margin-bottom:16px;color:#fff;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:1.1rem;font-weight:600;margin-top:24px;margin-bottom:8px;color:var(--primary)}
+p{margin-bottom:12px;color:var(--muted)}
+.badge{display:inline-block;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(139,92,246,0.15);color:var(--primary);margin-bottom:16px}
+code{background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.9em;color:var(--green)}
+pre{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;margin:12px 0;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin:16px 0}
+.file-path{font-family:monospace;font-size:13px;color:var(--orange);background:rgba(245,158,11,0.1);padding:4px 10px;border-radius:4px;display:inline-block;margin:4px 0}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+th{text-align:left;padding:10px;background:var(--surface);color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border)}
+.note{background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:8px;padding:16px;margin:16px 0}
+.note strong{color:var(--primary)}
+ul,ol{margin:8px 0 16px 24px}
+li{margin:4px 0;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<span class="badge">Frontend Developer</span>
+<h1>Trần Xuân Trường — Tài liệu hướng dẫn</h1>
+<p>Phần việc: Storefront (categories, deals, profile) + Dashboard (products, campaigns, notifications, settings)</p>
+
+<h2>1. Các trang bạn cần làm</h2>
+
+<table>
+<tr><th>Trang</th><th>File</th><th>API cần gọi</th></tr>
+<tr><td>Danh mục</td><td><code>app/(storefront)/categories/page.tsx</code></td><td><code>GET /products?category=xxx</code></td></tr>
+<tr><td>Khuyến mãi</td><td><code>app/(storefront)/deals/page.tsx</code></td><td><code>GET /products</code> (filter deals)</td></tr>
+<tr><td>Hồ sơ cá nhân</td><td><code>app/(storefront)/profile/page.tsx</code></td><td><code>GET /auth/me</code></td></tr>
+<tr><td>Quản lý sản phẩm</td><td><code>app/(admin)/dashboard/products/page.tsx</code></td><td><code>GET /products</code></td></tr>
+<tr><td>Campaigns</td><td><code>app/(admin)/dashboard/campaigns/page.tsx</code></td><td><code>GET /campaigns</code></td></tr>
+<tr><td>Notifications</td><td><code>app/(admin)/dashboard/notifications/page.tsx</code></td><td><code>GET /notifications</code></td></tr>
+<tr><td>Settings</td><td><code>app/(admin)/dashboard/settings/page.tsx</code></td><td>Local state</td></tr>
+</table>
+
+<h2>2. Cấu trúc thư mục</h2>
+
+<pre><code>apps/web/app/
+├── (storefront)/
+│   ├── categories/page.tsx   ← Bạn code
+│   ├── deals/page.tsx        ← Bạn code
+│   └── profile/page.tsx      ← Bạn code
+└── (admin)/dashboard/
+    ├── products/page.tsx     ← Bạn code
+    ├── campaigns/page.tsx    ← Bạn code
+    ├── notifications/page.tsx ← Bạn code
+    └── settings/page.tsx     ← Bạn code</code></pre>
+
+<h2>3. Công nghệ giống Hiền</h2>
+
+<table>
+<tr><th>Công nghệ</th><th>Học ở đâu</th></tr>
+<tr><td>Next.js 16 App Router</td><td>nextjs.org/docs/app</td></tr>
+<tr><td>React 19</td><td>react.dev</td></tr>
+<tr><td>Tailwind CSS 4</td><td>tailwindcss.com</td></tr>
+<tr><td>shadcn/ui</td><td>ui.shadcn.com</td></tr>
+</table>
+
+<h2>4. Mẫu code: Trang Campaigns</h2>
+
+<div class="file-path">app/(admin)/dashboard/campaigns/page.tsx</div>
+
+<pre><code>"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { Button } from "@workspace/ui/components/button";
+import { Badge } from "@workspace/ui/components/badge";
+
+interface Campaign {
+  id: number;
+  name: string;
+  segment: string;
+  status: string;
+  created_at: string;
+}
+
+export default function CampaignsPage() {
+  const [campaigns, setCampaigns] = useState&lt;Campaign[]&gt;([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() =&gt; {
+    const token = localStorage.getItem("kon_token");
+    fetch("http://localhost:8000/campaigns", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res =&gt; res.json())
+      .then(data =&gt; { setCampaigns(data); setLoading(false); })
+      .catch(() =&gt; setLoading(false));
+  }, []);
+
+  const getStatusColor = (status: string) =&gt; {
+    switch (status) {
+      case "approved": return "default";
+      case "draft": return "secondary";
+      case "executed": return "outline";
+      default: return "secondary";
+    }
+  };
+
+  if (loading) return &lt;div className="p-6"&gt;Đang tải...&lt;/div&gt;;
+
+  return (
+    &lt;div className="p-6 space-y-6"&gt;
+      &lt;div className="flex items-center justify-between"&gt;
+        &lt;h1 className="text-2xl font-bold"&gt;Chiến dịch Marketing&lt;/h1&gt;
+        &lt;Button&gt;+ Tạo chiến dịch&lt;/Button&gt;
+      &lt;/div&gt;
+
+      &lt;div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"&gt;
+        {campaigns.map((c) =&gt; (
+          &lt;Card key={c.id}&gt;
+            &lt;CardHeader&gt;
+              &lt;div className="flex items-center justify-between"&gt;
+                &lt;CardTitle className="text-lg"&gt;{c.name}&lt;/CardTitle&gt;
+                &lt;Badge variant={getStatusColor(c.status)}&gt;{c.status}&lt;/Badge&gt;
+              &lt;/div&gt;
+            &lt;/CardHeader&gt;
+            &lt;CardContent&gt;
+              &lt;p className="text-sm text-muted-foreground"&gt;Segment: {c.segment}&lt;/p&gt;
+              &lt;p className="text-xs text-muted-foreground mt-2"&gt;{c.created_at}&lt;/p&gt;
+              &lt;div className="flex gap-2 mt-4"&gt;
+                &lt;Button size="sm" variant="outline"&gt;Approve&lt;/Button&gt;
+                &lt;Button size="sm"&gt;Execute&lt;/Button&gt;
+              &lt;/div&gt;
+            &lt;/CardContent&gt;
+          &lt;/Card&gt;
+        ))}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+
+<h2>5. Mẫu code: Trang Notifications</h2>
+
+<div class="file-path">app/(admin)/dashboard/notifications/page.tsx</div>
+
+<pre><code>"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@workspace/ui/components/card";
+import { Button } from "@workspace/ui/components/button";
+import { Bell, Check } from "lucide-react";
+
+interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState&lt;Notification[]&gt;([]);
+
+  useEffect(() =&gt; {
+    const token = localStorage.getItem("kon_token");
+    fetch("http://localhost:8000/notifications", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res =&gt; res.json())
+      .then(setNotifications);
+  }, []);
+
+  const markAllRead = async () =&gt; {
+    const token = localStorage.getItem("kon_token");
+    await fetch("http://localhost:8000/notifications/read-all", {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setNotifications(prev =&gt; prev.map(n =&gt; ({ ...n, read: true })));
+  };
+
+  return (
+    &lt;div className="p-6 space-y-6"&gt;
+      &lt;div className="flex items-center justify-between"&gt;
+        &lt;h1 className="text-2xl font-bold"&gt;Thông báo&lt;/h1&gt;
+        &lt;Button variant="outline" onClick={markAllRead}&gt;
+          &lt;Check className="h-4 w-4 mr-2" /&gt; Đánh dấu tất cả đã đọc
+        &lt;/Button&gt;
+      &lt;/div&gt;
+
+      &lt;div className="space-y-3"&gt;
+        {notifications.map((n) =&gt; (
+          &lt;Card key={n.id} className={n.read ? "opacity-60" : ""}&gt;
+            &lt;CardContent className="p-4 flex items-start gap-3"&gt;
+              &lt;Bell className="h-5 w-5 text-primary mt-0.5" /&gt;
+              &lt;div&gt;
+                &lt;p className="font-medium"&gt;{n.title}&lt;/p&gt;
+                &lt;p className="text-sm text-muted-foreground"&gt;{n.message}&lt;/p&gt;
+                &lt;p className="text-xs text-muted-foreground mt-1"&gt;{n.created_at}&lt;/p&gt;
+              &lt;/div&gt;
+            &lt;/CardContent&gt;
+          &lt;/Card&gt;
+        ))}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+
+<h2>6. Mẫu code: Trang Categories (Storefront)</h2>
+
+<pre><code>"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@workspace/ui/components/card";
+import Link from "next/link";
+
+const CATEGORIES = [
+  { name: "Electronics", icon: "💻", slug: "electronics" },
+  { name: "Fashion", icon: "👗", slug: "fashion" },
+  { name: "Home & Garden", icon: "🏡", slug: "home" },
+  { name: "Sports", icon: "⚽", slug: "sports" },
+  { name: "Beauty", icon: "💄", slug: "beauty" },
+  { name: "Books", icon: "📚", slug: "books" },
+];
+
+export default function CategoriesPage() {
+  return (
+    &lt;div className="container mx-auto px-4 py-8"&gt;
+      &lt;h1 className="text-3xl font-bold mb-8"&gt;Danh mục sản phẩm&lt;/h1&gt;
+      &lt;div className="grid grid-cols-2 md:grid-cols-3 gap-4"&gt;
+        {CATEGORIES.map((cat) =&gt; (
+          &lt;Link href={`/products?category=${cat.slug}`} key={cat.slug}&gt;
+            &lt;Card className="hover:border-primary transition-colors cursor-pointer"&gt;
+              &lt;CardContent className="p-8 text-center"&gt;
+                &lt;div className="text-4xl mb-3"&gt;{cat.icon}&lt;/div&gt;
+                &lt;p className="font-semibold"&gt;{cat.name}&lt;/p&gt;
+              &lt;/CardContent&gt;
+            &lt;/Card&gt;
+          &lt;/Link&gt;
+        ))}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+
+<h2>7. Tips quan trọng</h2>
+
+<div class="note">
+<strong>Import components:</strong> Luôn import từ <code>@workspace/ui/components/...</code> (không phải từ thư mục local).
+</div>
+
+<div class="note">
+<strong>"use client":</strong> Nếu trang có useState, useEffect, onClick, hoặc bất kỳ logic client nào → phải thêm <code>"use client"</code> ở dòng đầu tiên.
+</div>
+
+<div class="note">
+<strong>Icons:</strong> Dùng thư viện <code>lucide-react</code>. Import: <code>import { Bell, Check, Plus } from "lucide-react"</code>
+</div>
+
+<h2>8. Cách chạy</h2>
+
+<pre><code># Clone repo
+git clone https://github.com/NguyenHuuDinh135/Kon.git
+cd Kon
+
+# Cài dependencies
+npm install
+
+# Chạy dev server
+npm run dev
+
+# Mở http://localhost:3000</code></pre>
+
+</body>
+</html>

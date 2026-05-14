@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trần Hiền — Hướng dẫn Frontend</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--primary:#3b82f6;--green:#22c55e;--orange:#f59e0b}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:40px;max-width:900px;margin:0 auto}
+h1{font-size:2rem;font-weight:800;margin-bottom:8px;color:#fff}
+h2{font-size:1.4rem;font-weight:700;margin-top:48px;margin-bottom:16px;color:#fff;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:1.1rem;font-weight:600;margin-top:24px;margin-bottom:8px;color:var(--primary)}
+p{margin-bottom:12px;color:var(--muted)}
+.badge{display:inline-block;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(59,130,246,0.15);color:var(--primary);margin-bottom:16px}
+code{background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.9em;color:var(--green)}
+pre{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;margin:12px 0;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin:16px 0}
+.file-path{font-family:monospace;font-size:13px;color:var(--orange);background:rgba(245,158,11,0.1);padding:4px 10px;border-radius:4px;display:inline-block;margin:4px 0}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+th{text-align:left;padding:10px;background:var(--surface);color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border)}
+.note{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:8px;padding:16px;margin:16px 0}
+.note strong{color:var(--primary)}
+ul,ol{margin:8px 0 16px 24px}
+li{margin:4px 0;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<span class="badge">Frontend Developer</span>
+<h1>Trần Hiền — Tài liệu hướng dẫn</h1>
+<p>Phần việc: Storefront (home, products, login) + Dashboard (orders, customers) + UI components</p>
+
+<h2>1. Cấu trúc thư mục cần biết</h2>
+
+<pre><code>apps/web/
+├── app/
+│   ├── (storefront)/         ← Bạn code phần này
+│   │   ├── page.tsx          ← Trang chủ
+│   │   ├── products/page.tsx ← Danh sách sản phẩm
+│   │   ├── login/page.tsx    ← Đăng nhập
+│   │   ├── register/page.tsx ← Đăng ký
+│   │   ├── checkout/page.tsx ← Thanh toán
+│   │   └── track-order/page.tsx ← Theo dõi đơn
+│   └── (admin)/
+│       └── dashboard/
+│           ├── orders/page.tsx    ← Bạn code
+│           └── customers/page.tsx ← Bạn code
+├── components/               ← Components tái sử dụng
+│   ├── storefront/           ← Components cho storefront
+│   └── dashboard/            ← Components cho dashboard
+└── lib/
+    └── api.ts                ← Hàm gọi API (dùng chung)
+</code></pre>
+
+<h2>2. Công nghệ cần học</h2>
+
+<table>
+<tr><th>Công nghệ</th><th>Mục đích</th><th>Tài liệu</th></tr>
+<tr><td>Next.js 16 (App Router)</td><td>Framework React, routing theo thư mục</td><td>nextjs.org/docs</td></tr>
+<tr><td>React 19</td><td>UI components, hooks</td><td>react.dev</td></tr>
+<tr><td>Tailwind CSS 4</td><td>Styling (utility classes)</td><td>tailwindcss.com</td></tr>
+<tr><td>shadcn/ui</td><td>Component library (Button, Table, Card...)</td><td>ui.shadcn.com</td></tr>
+<tr><td>TypeScript</td><td>Type safety</td><td>typescriptlang.org</td></tr>
+</table>
+
+<h2>3. Cách tạo 1 trang mới</h2>
+
+<p>Mỗi file <code>page.tsx</code> trong thư mục <code>app/</code> tự động trở thành 1 route:</p>
+
+<pre><code>// app/(storefront)/products/page.tsx
+// URL: http://localhost:3000/products
+
+export default function ProductsPage() {
+  return (
+    &lt;div className="container mx-auto px-4 py-8"&gt;
+      &lt;h1 className="text-3xl font-bold"&gt;Sản phẩm&lt;/h1&gt;
+      {/* Nội dung trang */}
+    &lt;/div&gt;
+  );
+}</code></pre>
+
+<h2>4. Cách gọi API từ Frontend</h2>
+
+<div class="file-path">apps/web/lib/api.ts</div>
+
+<pre><code>// Hàm gọi API có sẵn, bạn chỉ cần import và dùng:
+import { apiClient } from "@/lib/api";
+
+// Lấy danh sách sản phẩm
+const products = await apiClient("/products");
+
+// Lấy danh sách đơn hàng (cần auth)
+const orders = await apiClient("/orders", {
+  headers: { Authorization: `Bearer ${token}` }
+});
+
+// Tạo đơn hàng mới
+const newOrder = await apiClient("/orders", {
+  method: "POST",
+  body: JSON.stringify({ product_id: 1, quantity: 2 })
+});</code></pre>
+
+<div class="note">
+<strong>Lưu ý:</strong> Token lưu trong localStorage key <code>kon_token</code>. Khi user login thành công, token được lưu tự động.
+</div>
+
+<h2>5. Sử dụng shadcn/ui Components</h2>
+
+<pre><code>// Import components từ package ui
+import { Button } from "@workspace/ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table";
+import { Input } from "@workspace/ui/components/input";
+import { Badge } from "@workspace/ui/components/badge";
+
+// Ví dụ: Card sản phẩm
+function ProductCard({ product }) {
+  return (
+    &lt;Card&gt;
+      &lt;CardHeader&gt;
+        &lt;CardTitle&gt;{product.name}&lt;/CardTitle&gt;
+      &lt;/CardHeader&gt;
+      &lt;CardContent&gt;
+        &lt;p className="text-2xl font-bold"&gt;${product.price}&lt;/p&gt;
+        &lt;Button className="mt-4 w-full"&gt;Thêm vào giỏ&lt;/Button&gt;
+      &lt;/CardContent&gt;
+    &lt;/Card&gt;
+  );
+}</code></pre>
+
+<h2>6. Trang bạn cần làm (chi tiết)</h2>
+
+<h3>6.1. Trang chủ Storefront</h3>
+<div class="file-path">app/(storefront)/page.tsx</div>
+<p>Hiển thị: Hero banner, sản phẩm nổi bật, danh mục, khuyến mãi.</p>
+
+<h3>6.2. Trang sản phẩm</h3>
+<div class="file-path">app/(storefront)/products/page.tsx</div>
+<p>Gọi API: <code>GET /products</code> → Hiển thị grid cards, có search + pagination.</p>
+
+<h3>6.3. Trang đăng nhập</h3>
+<div class="file-path">app/(storefront)/login/page.tsx</div>
+<p>Form: username + password → Gọi <code>POST /auth/login</code> → Lưu token → Redirect dashboard.</p>
+
+<h3>6.4. Trang đăng ký</h3>
+<div class="file-path">app/(storefront)/register/page.tsx</div>
+<p>Form: username + email + password → Gọi <code>POST /auth/register</code>.</p>
+
+<h3>6.5. Dashboard Orders</h3>
+<div class="file-path">app/(admin)/dashboard/orders/page.tsx</div>
+<p>Bảng hiển thị đơn hàng: order_id, customer, total, status, date. Gọi <code>GET /orders</code>.</p>
+
+<h3>6.6. Dashboard Customers</h3>
+<div class="file-path">app/(admin)/dashboard/customers/page.tsx</div>
+<p>Bảng hiển thị khách hàng: ID, name, email, orders count, churn risk. Gọi <code>GET /customers</code>.</p>
+
+<h2>7. Tailwind CSS cơ bản</h2>
+
+<pre><code>{/* Layout */}
+&lt;div className="container mx-auto px-4"&gt;     {/* Centered container */}
+&lt;div className="grid grid-cols-3 gap-4"&gt;     {/* Grid 3 cột */}
+&lt;div className="flex items-center gap-2"&gt;    {/* Flexbox */}
+
+{/* Typography */}
+&lt;h1 className="text-3xl font-bold"&gt;          {/* Heading lớn */}
+&lt;p className="text-sm text-muted-foreground"&gt; {/* Text nhỏ, màu nhạt */}
+
+{/* Spacing */}
+&lt;div className="p-6"&gt;     {/* padding 24px */}
+&lt;div className="mt-4"&gt;    {/* margin-top 16px */}
+&lt;div className="space-y-4"&gt; {/* gap dọc 16px giữa children */}
+
+{/* Responsive */}
+&lt;div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"&gt;
+{/* 1 cột mobile, 2 cột tablet, 3 cột desktop */}</code></pre>
+
+<h2>8. Chạy dev server</h2>
+
+<pre><code># Từ thư mục gốc Kon/
+npm run dev
+
+# Mở browser: http://localhost:3000
+# Hot reload: sửa file → tự động cập nhật</code></pre>
+
+<h2>9. Mẫu trang hoàn chỉnh</h2>
+
+<pre><code>"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table";
+import { Badge } from "@workspace/ui/components/badge";
+
+export default function OrdersPage() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() =&gt; {
+    const token = localStorage.getItem("kon_token");
+    fetch("http://localhost:8000/orders", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res =&gt; res.json())
+      .then(data =&gt; { setOrders(data); setLoading(false); })
+      .catch(() =&gt; setLoading(false));
+  }, []);
+
+  if (loading) return &lt;div className="p-6"&gt;Đang tải...&lt;/div&gt;;
+
+  return (
+    &lt;div className="p-6 space-y-6"&gt;
+      &lt;h1 className="text-2xl font-bold"&gt;Quản lý đơn hàng&lt;/h1&gt;
+      &lt;Card&gt;
+        &lt;CardContent className="p-0"&gt;
+          &lt;Table&gt;
+            &lt;TableHeader&gt;
+              &lt;TableRow&gt;
+                &lt;TableHead&gt;Mã đơn&lt;/TableHead&gt;
+                &lt;TableHead&gt;Khách hàng&lt;/TableHead&gt;
+                &lt;TableHead&gt;Tổng tiền&lt;/TableHead&gt;
+                &lt;TableHead&gt;Trạng thái&lt;/TableHead&gt;
+              &lt;/TableRow&gt;
+            &lt;/TableHeader&gt;
+            &lt;TableBody&gt;
+              {orders.map((order) =&gt; (
+                &lt;TableRow key={order.order_id}&gt;
+                  &lt;TableCell&gt;{order.order_id}&lt;/TableCell&gt;
+                  &lt;TableCell&gt;{order.customer_id}&lt;/TableCell&gt;
+                  &lt;TableCell&gt;${order.total}&lt;/TableCell&gt;
+                  &lt;TableCell&gt;
+                    &lt;Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}&gt;
+                      {order.status}
+                    &lt;/Badge&gt;
+                  &lt;/TableCell&gt;
+                &lt;/TableRow&gt;
+              ))}
+            &lt;/TableBody&gt;
+          &lt;/Table&gt;
+        &lt;/CardContent&gt;
+      &lt;/Card&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+
+</body>
+</html>

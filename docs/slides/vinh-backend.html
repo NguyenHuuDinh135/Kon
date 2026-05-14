@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nguyễn Quang Vinh — Hướng dẫn Backend</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--primary:#f59e0b;--green:#22c55e;--orange:#f59e0b}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:40px;max-width:900px;margin:0 auto}
+h1{font-size:2rem;font-weight:800;margin-bottom:8px;color:#fff}
+h2{font-size:1.4rem;font-weight:700;margin-top:48px;margin-bottom:16px;color:#fff;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:1.1rem;font-weight:600;margin-top:24px;margin-bottom:8px;color:var(--primary)}
+p{margin-bottom:12px;color:var(--muted)}
+.badge{display:inline-block;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(245,158,11,0.15);color:var(--primary);margin-bottom:16px}
+code{background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.9em;color:var(--green)}
+pre{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;margin:12px 0;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0}
+.file-path{font-family:monospace;font-size:13px;color:var(--orange);background:rgba(245,158,11,0.1);padding:4px 10px;border-radius:4px;display:inline-block;margin:4px 0}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+th{text-align:left;padding:10px;background:var(--surface);color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border)}
+.note{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:16px;margin:16px 0}
+.note strong{color:var(--primary)}
+ul,ol{margin:8px 0 16px 24px}
+li{margin:4px 0;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<span class="badge">Backend Developer</span>
+<h1>Nguyễn Quang Vinh — Tài liệu hướng dẫn</h1>
+<p>Phần việc: API endpoints (customers, campaigns, auth) + Database + Testing</p>
+
+<h2>1. Công nghệ cần học</h2>
+
+<table>
+<tr><th>Công nghệ</th><th>Mục đích</th><th>Tài liệu</th></tr>
+<tr><td>Python 3.11+</td><td>Ngôn ngữ lập trình</td><td>python.org</td></tr>
+<tr><td>FastAPI</td><td>Web framework (tạo API)</td><td>fastapi.tiangolo.com</td></tr>
+<tr><td>SQLAlchemy</td><td>ORM (truy vấn database)</td><td>docs.sqlalchemy.org</td></tr>
+<tr><td>Pydantic</td><td>Validation (kiểm tra input)</td><td>docs.pydantic.dev</td></tr>
+<tr><td>PostgreSQL</td><td>Database</td><td>postgresql.org/docs</td></tr>
+<tr><td>pytest</td><td>Testing framework</td><td>docs.pytest.org</td></tr>
+</table>
+
+<h2>2. Các endpoints bạn cần viết</h2>
+
+<table>
+<tr><th>Method</th><th>URL</th><th>Mô tả</th><th>Auth?</th></tr>
+<tr><td>GET</td><td>/customers</td><td>Danh sách khách hàng</td><td>Yes</td></tr>
+<tr><td>GET</td><td>/customers/:id</td><td>Chi tiết 1 khách hàng</td><td>Yes</td></tr>
+<tr><td>GET</td><td>/campaigns</td><td>Danh sách campaigns</td><td>Yes</td></tr>
+<tr><td>POST</td><td>/campaigns</td><td>Tạo campaign mới</td><td>Yes (admin)</td></tr>
+<tr><td>PUT</td><td>/campaigns/:id/approve</td><td>Duyệt campaign</td><td>Yes (admin)</td></tr>
+<tr><td>PUT</td><td>/campaigns/:id/execute</td><td>Thực thi campaign</td><td>Yes (admin)</td></tr>
+</table>
+
+<h2>3. Code mẫu: Customers API</h2>
+
+<div class="file-path">apps/api/routers/ (thêm vào file hiện có)</div>
+
+<pre><code>from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import text
+from db_core import engine
+
+router = APIRouter()
+
+# GET /customers — Danh sách khách hàng (từ bảng customer_churn)
+@router.get("/customers")
+def get_customers(
+    limit: int = Query(50, le=200),
+    risk: str = Query(None, description="Filter: high, medium, low")
+):
+    with engine.connect() as conn:
+        query = """
+            SELECT "CustomerID", "Gender", "Tenure", "SatisfactionScore",
+                   "OrderCount", "DaySinceLastOrder", "CashbackAmount",
+                   "PreferedOrderCat", "Churn_Probability", "Cluster"
+            FROM customer_churn
+            WHERE "Churn_Probability" IS NOT NULL
+        """
+        params = {"lim": limit}
+
+        if risk == "high":
+            query += ' AND "Churn_Probability" > 0.7'
+        elif risk == "medium":
+            query += ' AND "Churn_Probability" BETWEEN 0.3 AND 0.7'
+        elif risk == "low":
+            query += ' AND "Churn_Probability" < 0.3'
+
+        query += ' ORDER BY "Churn_Probability" DESC LIMIT :lim'
+        result = conn.execute(text(query), params)
+        rows = result.fetchall()
+        return [dict(zip(result.keys(), row)) for row in rows]
+
+
+# GET /customers/:id — Chi tiết 1 khách hàng
+@router.get("/customers/{customer_id}")
+def get_customer(customer_id: int):
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT * FROM customer_churn WHERE "CustomerID" = :cid
+        """), {"cid": customer_id})
+        row = result.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        return dict(zip(result.keys(), row))</code></pre>
+
+<h2>4. Code mẫu: Campaigns API</h2>
+
+<pre><code>from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
+from db_core import engine
+from datetime import datetime
+
+router = APIRouter()
+
+# GET /campaigns — Danh sách chiến dịch
+@router.get("/campaigns")
+def get_campaigns():
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT id, name, segment, status, channel, message, created_at
+            FROM campaigns
+            ORDER BY created_at DESC
+        """))
+        return [dict(zip(result.keys(), row)) for row in result.fetchall()]
+
+
+# POST /campaigns — Tạo chiến dịch mới
+@router.post("/campaigns")
+def create_campaign(data: dict):
+    name = data.get("name")
+    segment = data.get("segment", "general")
+    channel = data.get("channel", "email")
+    message = data.get("message", "")
+
+    if not name:
+        raise HTTPException(status_code=400, detail="Campaign name required")
+
+    with engine.connect() as conn:
+        conn.execute(text("""
+            INSERT INTO campaigns (name, segment, status, channel, message, created_at)
+            VALUES (:name, :segment, 'draft', :channel, :message, :now)
+        """), {
+            "name": name,
+            "segment": segment,
+            "channel": channel,
+            "message": message,
+            "now": datetime.utcnow()
+        })
+        conn.commit()
+    return {"message": f"Campaign '{name}' created as draft"}
+
+
+# PUT /campaigns/:id/approve — Duyệt chiến dịch
+@router.put("/campaigns/{campaign_id}/approve")
+def approve_campaign(campaign_id: int):
+    with engine.connect() as conn:
+        result = conn.execute(text(
+            "UPDATE campaigns SET status = 'approved' WHERE id = :id AND status = 'draft'"
+        ), {"id": campaign_id})
+        conn.commit()
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Campaign not found or already approved")
+    return {"message": "Campaign approved"}
+
+
+# PUT /campaigns/:id/execute — Thực thi chiến dịch
+@router.put("/campaigns/{campaign_id}/execute")
+def execute_campaign(campaign_id: int):
+    with engine.connect() as conn:
+        result = conn.execute(text(
+            "UPDATE campaigns SET status = 'executed' WHERE id = :id AND status = 'approved'"
+        ), {"id": campaign_id})
+        conn.commit()
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Campaign not found or not approved")
+    return {"message": "Campaign executed"}</code></pre>
+
+<h2>5. Auth — Cách protect endpoint</h2>
+
+<p>API sử dụng JWT token. Cách bảo vệ endpoint chỉ admin mới truy cập được:</p>
+
+<pre><code>from apps.api.routers.auth import get_current_user, require_admin
+
+# Endpoint cần đăng nhập
+@router.get("/customers")
+def get_customers(current_user = Depends(get_current_user)):
+    # current_user chứa thông tin user đã login
+    ...
+
+# Endpoint chỉ admin
+@router.post("/campaigns")
+def create_campaign(data: dict, admin = Depends(require_admin)):
+    # Chỉ user có role=admin mới vào được
+    ...</code></pre>
+
+<div class="note">
+<strong>Flow auth:</strong><br>
+1. User gọi <code>POST /auth/login</code> với username + password<br>
+2. Server trả về JWT token<br>
+3. Mọi request sau đều gửi header: <code>Authorization: Bearer &lt;token&gt;</code><br>
+4. Server decode token → biết user nào đang gọi
+</div>
+
+<h2>6. Database Schema — Bảng campaigns</h2>
+
+<pre><code>CREATE TABLE campaigns (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    segment VARCHAR(100),         -- 'high_churn', 'vip', 'at_risk'...
+    status VARCHAR(50) DEFAULT 'draft',  -- draft → approved → executed
+    channel VARCHAR(100),         -- 'email', 'push', 'sms'
+    message TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);</code></pre>
+
+<h2>7. Viết Tests cho API</h2>
+
+<div class="file-path">apps/api/tests/test_customers.py</div>
+
+<pre><code>import pytest
+from fastapi.testclient import TestClient
+from apps.api.main import app
+
+client = TestClient(app)
+
+def get_admin_token():
+    """Helper: lấy token admin"""
+    resp = client.post("/auth/login", json={
+        "username": "admin", "password": "admin123"
+    })
+    return resp.json()["access_token"]
+
+def test_get_customers():
+    token = get_admin_token()
+    resp = client.get("/customers", headers={
+        "Authorization": f"Bearer {token}"
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data, list)
+    assert len(data) > 0
+
+def test_get_customers_filter_high_risk():
+    token = get_admin_token()
+    resp = client.get("/customers?risk=high", headers={
+        "Authorization": f"Bearer {token}"
+    })
+    assert resp.status_code == 200
+    for customer in resp.json():
+        assert customer["Churn_Probability"] > 0.7
+
+def test_get_customer_by_id():
+    token = get_admin_token()
+    resp = client.get("/customers/100", headers={
+        "Authorization": f"Bearer {token}"
+    })
+    assert resp.status_code == 200
+    assert resp.json()["CustomerID"] == 100
+
+def test_get_customer_not_found():
+    token = get_admin_token()
+    resp = client.get("/customers/99999", headers={
+        "Authorization": f"Bearer {token}"
+    })
+    assert resp.status_code == 404
+
+def test_create_campaign():
+    token = get_admin_token()
+    resp = client.post("/campaigns", json={
+        "name": "Test Campaign",
+        "segment": "high_churn",
+        "channel": "email",
+        "message": "Giảm 20% cho đơn hàng tiếp theo!"
+    }, headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+
+def test_get_campaigns():
+    token = get_admin_token()
+    resp = client.get("/campaigns", headers={
+        "Authorization": f"Bearer {token}"
+    })
+    assert resp.status_code == 200
+    assert isinstance(resp.json(), list)</code></pre>
+
+<h3>Chạy tests:</h3>
+<pre><code>cd Kon
+PYTHONPATH=packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers \
+  pytest apps/api/tests/ -v --tb=short</code></pre>
+
+<h2>8. Hướng dẫn viết phần báo cáo</h2>
+
+<p>Phần bạn hỗ trợ viết trong báo cáo:</p>
+
+<h3>Chương 2: Phân tích yêu cầu</h3>
+<ul>
+<li>Use case diagram (ai làm gì với hệ thống)</li>
+<li>Danh sách chức năng (CRUD customers, campaigns, orders)</li>
+<li>Yêu cầu phi chức năng (bảo mật JWT, rate limiting, response time)</li>
+</ul>
+
+<h3>Chương 2: Cơ sở dữ liệu</h3>
+<ul>
+<li>Mô tả các bảng và mối quan hệ</li>
+<li>ERD diagram (chụp từ SSMS sau khi chạy SQL script)</li>
+<li>Giải thích data flow: Kaggle → PostgreSQL → ML → API → Frontend</li>
+</ul>
+
+<h2>9. Cách setup môi trường dev</h2>
+
+<pre><code># Bước 1: Clone repo
+git clone https://github.com/NguyenHuuDinh135/Kon.git
+cd Kon
+
+# Bước 2: Tạo Python virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate   # Windows
+
+# Bước 3: Cài dependencies
+pip install -r requirements.txt
+
+# Bước 4: Chạy database
+docker compose up db -d
+
+# Bước 5: Chạy API
+export PYTHONPATH=packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers
+export DATABASE_URL=postgresql://nguyenhuudinh:kon_password@localhost:5432/kon_erp_northwind
+export JWT_SECRET_KEY=my-super-secret-key-at-least-32-chars
+
+uvicorn apps.api.main:app --reload --port 8000
+
+# Bước 6: Mở Swagger
+# http://localhost:8000/docs → Thử gọi API trực tiếp</code></pre>
+
+</body>
+</html>
