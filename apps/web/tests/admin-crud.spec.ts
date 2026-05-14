@@ -52,6 +52,6 @@ test.describe('Admin Product CRUD', () => {
 
     await page.goto('/dashboard/products');
     await expect(page.locator('table')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('th:has-text("Danh mục")')).toBeVisible();
+    await expect(page.locator('th:has-text("Category")')).toBeVisible();
   });
 });

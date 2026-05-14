@@ -36,9 +36,9 @@ export function CLVBySegmentChart({ data }: CLVBySegmentChartProps) {
     >
       {/* Header */}
       <div className="border-b p-6">
-        <h3 className="text-lg font-semibold">CLV theo phân khúc</h3>
+        <h3 className="text-lg font-semibold">CLV by Segment</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Giá trị vòng đời trung bình theo cụm RFM
+          Average lifetime value by RFM cluster
         </p>
       </div>
 

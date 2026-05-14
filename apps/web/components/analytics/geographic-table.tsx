@@ -26,10 +26,10 @@ export function GeographicTable({ data }: GeographicTableProps) {
         </div>
         <div>
           <h3 className="text-lg font-semibold">
-            Hiệu suất theo khu vực
+            Regional Performance
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Doanh thu và tương tác theo vị trí khách hàng
+            Revenue and engagement by customer location
           </p>
         </div>
       </div>
@@ -39,16 +39,16 @@ export function GeographicTable({ data }: GeographicTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs uppercase tracking-wider">
-                Bang
+                State
               </TableHead>
               <TableHead className="text-right text-xs uppercase tracking-wider">
-                Doanh thu
+                Revenue
               </TableHead>
               <TableHead className="text-right text-xs uppercase tracking-wider">
-                Khách hàng
+                Customers
               </TableHead>
               <TableHead className="hidden text-right text-xs uppercase tracking-wider sm:table-cell">
-                Thị phần
+                Share
               </TableHead>
               <TableHead className="text-right text-xs uppercase tracking-wider">
                 Churn

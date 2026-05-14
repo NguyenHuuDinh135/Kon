@@ -1,6 +1,7 @@
 "use client";
 
-import { ShoppingCart } from "lucide-react";
+import { useState } from "react";
+import { ShoppingCart, Package } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardFooter } from "@workspace/ui/components/card";
@@ -22,6 +23,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, className }: ProductCardProps) {
   const { addItem } = useCart();
+  const [imgError, setImgError] = useState(false);
 
   const productImage =
     product.image ||
@@ -45,12 +47,19 @@ export function ProductCard({ product, className }: ProductCardProps) {
       )}
     >
       <div className="relative aspect-square overflow-hidden bg-muted">
-        <img
-          src={productImage}
-          alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          loading="lazy"
-        />
+        {imgError ? (
+          <div className="flex h-full w-full items-center justify-center bg-muted">
+            <Package className="h-12 w-12 text-muted-foreground/40" />
+          </div>
+        ) : (
+          <img
+            src={productImage}
+            alt={product.name}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        )}
         <Button
           size="icon"
           variant="secondary"
@@ -91,7 +100,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
           onClick={handleAddToCart}
         >
           <ShoppingCart className="mr-2 h-4 w-4" />
-          Thêm vào giỏ
+          Add to Cart
         </Button>
       </CardFooter>
     </Card>

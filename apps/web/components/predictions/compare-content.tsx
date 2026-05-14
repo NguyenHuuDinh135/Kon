@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import {
   Radar,
@@ -10,6 +11,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { Button } from "@workspace/ui/components/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CompareContentProps {
   data: {
@@ -32,7 +35,14 @@ const modelColors: Record<string, string> = {
   "KMeans Clustering": "var(--color-chart-3)",
 };
 
+const PAGE_SIZE = 20;
+
 export function CompareContent({ data, metrics }: CompareContentProps) {
+  const [page, setPage] = useState(0);
+  const customers = data.customers || [];
+  const totalPages = Math.ceil(customers.length / PAGE_SIZE);
+  const paginatedCustomers = customers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
   // Build radar chart data from metrics
   const radarData = (() => {
     const metricNames = ["accuracy", "precision_score", "recall", "f1_score"];
@@ -216,10 +226,35 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
         transition={{ delay: 0.4 }}
         className="overflow-hidden rounded-xl border bg-card/50 backdrop-blur-xl"
       >
-        <div className="border-b p-4">
+        <div className="flex items-center justify-between border-b p-4">
           <h3 className="text-sm font-semibold text-foreground/80">
-            Dự đoán song song ({data.total || 0} khách hàng)
+            Side-by-side Predictions ({data.total || customers.length} customers)
           </h3>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={page === 0}
+                onClick={() => setPage(page - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {page + 1} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage(page + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -249,7 +284,7 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {(data.customers || []).slice(0, 50).map((row: any) => (
+              {paginatedCustomers.map((row: any) => (
                 <tr
                   key={row.CustomerID}
                   className="transition-colors hover:bg-muted/20"

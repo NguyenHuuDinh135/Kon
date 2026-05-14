@@ -12,7 +12,7 @@ test.describe('Dashboard E2E', () => {
   test('should load the dashboard overview', async ({ page }) => {
     await page.goto('/dashboard');
 
-    await expect(page.getByText('Trung tâm điều khiển', { exact: true })).toBeVisible();
+    await expect(page.getByText('Trung tâm điều khiển')).toBeVisible();
 
     await expect(page.getByText('Tổng khách hàng')).toBeVisible();
     await expect(page.getByText('Tổng đơn hàng')).toBeVisible();

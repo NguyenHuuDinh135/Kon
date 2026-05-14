@@ -410,6 +410,88 @@ def get_revenue_forecast(
     return {"historical": historical, "forecast": forecast}
 
 
+@router.get("/analytics/clv-by-segment")
+def get_clv_by_segment(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    """CLV aggregated by customer segment (K-Means cluster labels)."""
+    query = """
+    SELECT
+        cs.cluster_label,
+        ROUND(AVG(sub.clv)::numeric, 2) as avg_clv
+    FROM customer_segments cs
+    JOIN (
+        SELECT
+            "CustomerID",
+            SUM("TotalAmount") / NULLIF(COUNT(DISTINCT "InvoiceNo"), 0)
+                * COUNT(DISTINCT "InvoiceNo") * 2 as clv
+        FROM online_retail
+        WHERE "CustomerID" IS NOT NULL AND "Quantity" > 0
+        GROUP BY "CustomerID"
+    ) sub ON cs."CustomerID" = sub."CustomerID"
+    GROUP BY cs.cluster_label
+    ORDER BY avg_clv DESC
+    """
+    try:
+        df = pd.read_sql(query, engine)
+        if df.empty:
+            raise Exception("No data")
+        return df.to_dict(orient="records")
+    except Exception:
+        # Fallback: aggregate CLV by churn status
+        fallback_query = """
+        SELECT
+            CASE WHEN cc."Churn" = 1 THEN 'Churned' ELSE 'Active' END as cluster_label,
+            ROUND(AVG(sub.clv)::numeric, 2) as avg_clv
+        FROM customer_churn cc
+        JOIN (
+            SELECT
+                "CustomerID",
+                SUM("TotalAmount") / NULLIF(COUNT(DISTINCT "InvoiceNo"), 0)
+                    * COUNT(DISTINCT "InvoiceNo") * 2 as clv
+            FROM online_retail
+            WHERE "CustomerID" IS NOT NULL AND "Quantity" > 0
+            GROUP BY "CustomerID"
+        ) sub ON cc."CustomerID" = sub."CustomerID"
+        GROUP BY cc."Churn"
+        ORDER BY avg_clv DESC
+        """
+        try:
+            df = pd.read_sql(fallback_query, engine)
+            return df.to_dict(orient="records")
+        except Exception:
+            return []
+
+
+@router.get("/analytics/geographic-stats")
+def get_geographic_stats(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    """Revenue and customer stats by geographic state."""
+    query = """
+    SELECT
+        c.customer_state,
+        COALESCE(SUM(oi.price), 0) as total_revenue,
+        COUNT(DISTINCT c.customer_id) as customer_count,
+        ROUND(
+            COALESCE(
+                AVG(CASE WHEN cc."Churn" = 1 THEN 1.0 ELSE 0.0 END),
+                0
+            )::numeric, 4
+        ) as churn_rate
+    FROM customers c
+    LEFT JOIN orders o ON c.customer_id = o.customer_id
+    LEFT JOIN order_items oi ON o.order_id = oi.order_id
+    LEFT JOIN customer_churn cc ON c.customer_id = cc."CustomerID"
+    WHERE c.customer_state IS NOT NULL
+    GROUP BY c.customer_state
+    ORDER BY total_revenue DESC
+    LIMIT 20
+    """
+    df = pd.read_sql(query, engine)
+    return df.to_dict(orient="records")
+
+
 @router.get("/analytics/ai-insights")
 def get_ai_insights(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get the latest autonomous AI cycle insights."""

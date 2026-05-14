@@ -18,14 +18,6 @@ const COLORS = [
   "var(--color-chart-5)",
 ];
 
-const clusterLabels = [
-  "Khách VIP",
-  "Khách trung thành",
-  "Có nguy cơ",
-  "Ngủ đông",
-  "Khách mới"
-];
-
 const chartConfig = {
   count: {
     label: "Customers",
@@ -33,14 +25,14 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 interface SegmentationChartProps {
-  data: { Cluster: number; count: number }[];
+  data: { segment: string; count: number }[];
 }
 
 export function SegmentationChart({ data }: SegmentationChartProps) {
-  const chartData = data.map((item) => ({
-    name: clusterLabels[item.Cluster] || `Cluster ${item.Cluster}`,
+  const chartData = data.map((item, index) => ({
+    name: item.segment,
     value: item.count,
-    fill: COLORS[item.Cluster % COLORS.length],
+    fill: COLORS[index % COLORS.length],
   }));
 
   const totalCustomers = chartData.reduce((sum, item) => sum + item.value, 0);
@@ -61,9 +53,9 @@ export function SegmentationChart({ data }: SegmentationChartProps) {
         <div className="flex h-full flex-col p-6">
           {/* Header */}
           <div>
-            <h3 className="text-lg font-semibold">Phân khúc khách hàng</h3>
+            <h3 className="text-lg font-semibold">Customer Segments</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Phân cụm K-Means RFM
+              K-Means RFM Clustering
             </p>
           </div>
 
@@ -121,7 +113,7 @@ export function SegmentationChart({ data }: SegmentationChartProps) {
                               y={(viewBox.cy || 0) + 12}
                               className="fill-muted-foreground text-xs"
                             >
-                              Tổng
+                              Total
                             </tspan>
                           </text>
                         );

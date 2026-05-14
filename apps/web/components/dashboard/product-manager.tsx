@@ -19,7 +19,7 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from "@/lib/api";
 
 interface Product {
@@ -31,9 +31,13 @@ interface Product {
   product_weight_g: number | null;
 }
 
+const PAGE_SIZE = 20;
+
 export function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
@@ -45,14 +49,22 @@ export function ProductManager() {
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchProducts();
-      setProducts(data);
+      const data = await fetchProducts(page * PAGE_SIZE, PAGE_SIZE);
+      if (Array.isArray(data)) {
+        setProducts(data);
+        if (data.length < PAGE_SIZE && page === 0) setTotal(data.length);
+        else if (data.length < PAGE_SIZE) setTotal(page * PAGE_SIZE + data.length);
+        else setTotal((page + 2) * PAGE_SIZE);
+      } else {
+        setProducts(data.items || []);
+        setTotal(data.total || 0);
+      }
     } catch {
       // Error handled by displaying empty state
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     loadProducts();
@@ -79,12 +91,12 @@ export function ProductManager() {
   };
 
   const handleDelete = async (productId: string) => {
-    if (!confirm("Bạn có chắc muốn xóa sản phẩm này?")) return;
+    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       await deleteProduct(productId);
       loadProducts();
     } catch {
-      alert("Xóa sản phẩm thất bại");
+      alert("Failed to delete product");
     }
   };
 
@@ -99,28 +111,28 @@ export function ProductManager() {
       setIsDialogOpen(false);
       loadProducts();
     } catch {
-      alert("Lưu sản phẩm thất bại");
+      alert("Failed to save product");
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight">Sản phẩm</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Products</h2>
         <Button onClick={handleOpenAdd}>
-          <Plus className="mr-2 h-4 w-4" /> Thêm sản phẩm
+          <Plus className="mr-2 h-4 w-4" /> Add Product
         </Button>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{currentProduct ? "Sửa sản phẩm" : "Thêm sản phẩm mới"}</DialogTitle>
+            <DialogTitle>{currentProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="category">Tên danh mục</Label>
+                <Label htmlFor="category">Category Name</Label>
                 <Input
                   id="category"
                   value={formData.product_category_name}
@@ -131,7 +143,7 @@ export function ProductManager() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="weight">Trọng lượng (g)</Label>
+                  <Label htmlFor="weight">Weight (g)</Label>
                   <Input
                     id="weight"
                     type="number"
@@ -141,7 +153,7 @@ export function ProductManager() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="photos">Số ảnh</Label>
+                  <Label htmlFor="photos">Photos</Label>
                   <Input
                     id="photos"
                     type="number"
@@ -154,7 +166,7 @@ export function ProductManager() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit">Lưu thay đổi</Button>
+              <Button type="submit">Save</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -169,18 +181,18 @@ export function ProductManager() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Mã SP</TableHead>
-                <TableHead>Danh mục</TableHead>
-                <TableHead>Trọng lượng (g)</TableHead>
-                <TableHead>Ảnh</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
+                <TableHead>Product ID</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Weight (g)</TableHead>
+                <TableHead>Photos</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {products.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
-                    Không tìm thấy sản phẩm.
+                    No products found.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -216,6 +228,33 @@ export function ProductManager() {
               )}
             </TableBody>
           </Table>
+        )}
+        {!loading && products.length > 0 && (
+          <div className="flex items-center justify-between border-t px-4 py-3">
+            <span className="text-xs text-muted-foreground">
+              Page {page + 1}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={page === 0}
+                onClick={() => setPage(page - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={products.length < PAGE_SIZE}
+                onClick={() => setPage(page + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -285,6 +285,18 @@ export async function fetchCLV() {
   return res.json();
 }
 
+export async function fetchCLVBySegment() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/analytics/clv-by-segment`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch CLV by segment");
+  return res.json();
+}
+
+export async function fetchGeographicStats() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/analytics/geographic-stats`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch geographic stats");
+  return res.json();
+}
+
 export async function fetchRFMScores() {
   const res = await fetchWithAuth(`${API_BASE_URL}/analytics/rfm-scores`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Failed to fetch RFM scores");
