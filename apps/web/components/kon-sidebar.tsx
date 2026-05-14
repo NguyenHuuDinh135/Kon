@@ -25,16 +25,18 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarFooter,
 } from "@workspace/ui/components/sidebar";
+import { NavUser } from "@/components/nav-user";
 
 const navMain = [
   {
-    title: "Dashboard",
+    title: "Bảng điều khiển",
     url: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    title: "Semantic Search",
+    title: "Tìm kiếm ngữ nghĩa",
     url: "/dashboard/search",
     icon: Search,
   },
@@ -47,22 +49,22 @@ const navMain = [
 
 const navPredictions = [
   {
-    title: "All Models",
+    title: "Tất cả mô hình",
     url: "/predictions",
     icon: BrainCircuit,
   },
   {
-    title: "Decision Tree",
+    title: "Cây quyết định",
     url: "/predictions/decision-tree",
     icon: GitBranch,
   },
   {
-    title: "Clustering",
+    title: "Phân cụm",
     url: "/predictions/clustering",
     icon: Users,
   },
   {
-    title: "Churn (Logistic)",
+    title: "Rời bỏ (Logistic)",
     url: "/predictions/logistic-regression",
     icon: BarChart3,
   },
@@ -70,32 +72,32 @@ const navPredictions = [
 
 const navManagement = [
   {
-    title: "Products",
+    title: "Sản phẩm",
     url: "/dashboard/products",
     icon: Package,
   },
   {
-    title: "Customers",
+    title: "Khách hàng",
     url: "/dashboard/customers",
     icon: Users,
   },
   {
-    title: "Orders",
+    title: "Đơn hàng",
     url: "/dashboard/orders",
     icon: Package,
   },
   {
-    title: "Analytics",
+    title: "Phân tích",
     url: "/dashboard/analytics",
     icon: BarChart3,
   },
   {
-    title: "Notifications",
+    title: "Thông báo",
     url: "/dashboard/notifications",
     icon: Bell,
   },
   {
-    title: "Campaigns",
+    title: "Chiến dịch",
     url: "/dashboard/campaigns",
     icon: Megaphone,
   },
@@ -123,7 +125,7 @@ export function KonSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Core AI</SidebarGroupLabel>
+          <SidebarGroupLabel>AI Cốt lõi</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navMain.map((item) => (
@@ -159,7 +161,7 @@ export function KonSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Management</SidebarGroupLabel>
+          <SidebarGroupLabel>Quản lý</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navManagement.map((item) => (
@@ -180,10 +182,10 @@ export function KonSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Settings">
+                <SidebarMenuButton asChild tooltip="Cài đặt">
                   <a href="/dashboard/settings">
                     <Settings />
-                    <span>Settings</span>
+                    <span>Cài đặt</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -191,6 +193,9 @@ export function KonSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
     </Sidebar>
   );
 }

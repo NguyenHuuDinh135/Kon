@@ -12,7 +12,9 @@ export default async function DecisionTreePage() {
   } catch {}
 
   const dtMetric = metrics.find((m: any) => m.model_name === "Decision Tree");
-  const params = dtMetric?.parameters ? JSON.parse(dtMetric.parameters) : {};
+  const params = typeof dtMetric?.parameters === 'string' 
+    ? JSON.parse(dtMetric.parameters) 
+    : (dtMetric?.parameters || {});
 
   return (
     <DecisionTreeContent

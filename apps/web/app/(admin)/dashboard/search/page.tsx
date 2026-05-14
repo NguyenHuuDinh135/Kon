@@ -44,16 +44,16 @@ export default function SearchPage() {
   return (
     <div className="space-y-6">
       <div className="text-center max-w-2xl mx-auto space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Semantic Behavior Search</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Tìm kiếm ngữ nghĩa</h2>
         <p className="text-muted-foreground">
-          Find customers based on how they behave, not just what they buy. 
-          Uses Gemini Text Embeddings & pgvector.
+          Tìm khách hàng dựa trên hành vi, không chỉ sản phẩm họ mua.
+          Sử dụng Gemini Text Embeddings & pgvector.
         </p>
       </div>
 
       <div className="max-w-xl mx-auto flex gap-2">
         <Input 
-          placeholder="e.g. 'High spending customers who are older than 40'" 
+          placeholder="VD: 'Khách hàng chi tiêu cao trên 40 tuổi'" 
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -61,7 +61,7 @@ export default function SearchPage() {
         />
         <Button onClick={handleSearch} disabled={isLoading} className="h-12 px-6">
           {isLoading ? <Loader2 className="animate-spin" /> : <Search className="size-4" />}
-          <span className="ml-2">Search</span>
+          <span className="ml-2">Tìm kiếm</span>
         </Button>
       </div>
 
@@ -83,24 +83,36 @@ export default function SearchPage() {
                     <CardTitle className="text-lg">Customer #{result.CustomerID}</CardTitle>
                     <div className="flex gap-1 mt-1">
                       <Badge variant="outline">{result.Gender}</Badge>
-                      <Badge variant="secondary">Age {result.Age}</Badge>
+                      <Badge variant="secondary">Tier {result.CityTier}</Badge>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Annual Income:</span>
-                    <span className="font-semibold">${result["Annual Income (k$)"]}k</span>
+                    <span className="text-muted-foreground">Thời gian (tháng):</span>
+                    <span className="font-semibold">{result.Tenure}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Spending Score:</span>
-                    <span className="font-semibold text-primary">{result["Spending Score (1-100)"]}/100</span>
+                    <span className="text-muted-foreground">Hài lòng:</span>
+                    <span className="font-semibold text-primary">{result.SatisfactionScore}/5</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Đơn hàng:</span>
+                    <span className="font-semibold">{result.OrderCount}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Danh mục:</span>
+                    <span className="font-semibold">{result.PreferedOrderCat}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Cashback:</span>
+                    <span className="font-semibold">${result.CashbackAmount}</span>
                   </div>
                   <div className="pt-2">
                      <div className="w-full bg-muted rounded-full h-1.5">
-                        <div 
-                          className="bg-primary h-1.5 rounded-full" 
-                          style={{ width: `${result["Spending Score (1-100)"]}%` }}
+                        <div
+                          className="bg-primary h-1.5 rounded-full"
+                          style={{ width: `${(result.SatisfactionScore / 5) * 100}%` }}
                         />
                      </div>
                   </div>
@@ -114,7 +126,7 @@ export default function SearchPage() {
       {results.length === 0 && !isLoading && (
         <div className="text-center py-20 text-muted-foreground">
           <Search className="size-12 mx-auto mb-4 opacity-20" />
-          <p>Try searching for "young male high spending" or "low income low score"</p>
+          <p>Thử tìm &quot;khách hàng trung thành hài lòng cao&quot; hoặc &quot;thời gian ngắn cashback cao&quot;</p>
         </div>
       )}
     </div>

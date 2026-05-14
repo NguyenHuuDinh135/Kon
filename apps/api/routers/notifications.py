@@ -54,6 +54,8 @@ def mark_as_read(
     notif = db.query(Notification).filter(Notification.id == notification_id).first()
     if not notif:
         raise HTTPException(status_code=404, detail="Notification not found")
+    if notif.user_id is not None and notif.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this notification")
     notif.is_read = True
     db.commit()
     return {"message": "Marked as read"}
@@ -68,6 +70,6 @@ def mark_all_read(
     db.query(Notification).filter(
         (Notification.user_id == current_user.id) | (Notification.user_id == None),
         Notification.is_read == False,
-    ).update({"is_read": True})
+    ).update({"is_read": True}, synchronize_session=False)
     db.commit()
     return {"message": "All marked as read"}

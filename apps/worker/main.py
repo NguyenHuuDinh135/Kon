@@ -125,17 +125,37 @@ def load_ecommerce_churn():
 
 
 def generate_churn_embeddings():
-    """Generate Gemini embeddings for customer churn profiles (for vector search)."""
-    try:
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
-    except ImportError:
-        print("⚠️ langchain-google-genai not available, skipping embeddings")
-        return
+    """Generate embeddings for customer churn profiles (for vector search)."""
+    use_ollama = os.getenv("USE_OLLAMA", "").lower() == "true"
+    
+    if use_ollama:
+        try:
+            from langchain_ollama import OllamaEmbeddings
+            base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+            print(f"🚀 Using local Ollama embeddings (nomic-embed-text) at {base_url}...")
+            embeddings_model = OllamaEmbeddings(
+                model="nomic-embed-text",
+                base_url=base_url
+            )
+        except ImportError:
+            print("⚠️ langchain-ollama not available, skipping embeddings")
+            return
+    else:
+        try:
+            from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        except ImportError:
+            print("⚠️ langchain-google-genai not available, skipping embeddings")
+            return
 
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        print("⚠️ GOOGLE_API_KEY not set, skipping embeddings")
-        return
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            print("⚠️ GOOGLE_API_KEY not set, skipping embeddings")
+            return
+        
+        embeddings_model = GoogleGenerativeAIEmbeddings(
+            model="models/text-embedding-004",
+            google_api_key=api_key
+        )
 
     # Check if embeddings already exist
     with engine.connect() as conn:
@@ -154,10 +174,6 @@ def generate_churn_embeddings():
             return
 
     print("Generating embeddings for customer_churn (this may take a few minutes)...")
-    embeddings_model = GoogleGenerativeAIEmbeddings(
-        model="models/text-embedding-004",
-        google_api_key=api_key
-    )
 
     df = pd.read_sql("SELECT * FROM customer_churn LIMIT 200", engine)  # Limit for API quota
 

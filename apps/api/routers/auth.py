@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -26,16 +27,7 @@ def authenticate_user(db: Session, username: str, password: str):
     if not user:
         return False
 
-    # Check if account is locked
-    if user.locked_until and user.locked_until > datetime.utcnow():
-        raise HTTPException(status_code=423, detail="Account locked. Try again later.")
-
     if not verify_password(password, user.hashed_password):
-        # On failed login: increment failed attempts
-        user.failed_attempts = (user.failed_attempts or 0) + 1
-        if user.failed_attempts >= 5:
-            user.locked_until = datetime.utcnow() + timedelta(minutes=15)
-        db.commit()
         return False
 
     # On successful login: reset failed attempts
@@ -57,7 +49,7 @@ def register_user(request: Request, user: UserCreate, db: Session = Depends(get_
         username=user.username,
         email=user.email,
         hashed_password=hashed_pwd,
-        role=user.role,
+        role="client",
     )
     db.add(new_user)
     db.commit()
@@ -66,7 +58,7 @@ def register_user(request: Request, user: UserCreate, db: Session = Depends(get_
 
 
 @router.post("/login", response_model=Token)
-@limiter.limit("5/minute")
+@limiter.limit(os.environ.get("LOGIN_RATE_LIMIT", "100/minute"))
 async def login_for_access_token(
     request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):

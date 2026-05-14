@@ -1,85 +1,102 @@
-# 🛡️ Kon: Autonomous AI ERP & CRM System
+# Kon: AI-Powered ERP & CRM Monorepo
 
-Kon is an autonomous Agentic System that combines Enterprise Resource Planning (ERP) and Customer Relationship Management (CRM). It uses **Northwind Traders** as its core data and extends it with behavioral datasets. Kon is capable of proactively observing, analyzing risks, planning marketing strategies, and executing business decisions automatically.
+## Project Overview
+Kon is an autonomous agentic system that combines Enterprise Resource Planning (ERP) and Customer Relationship Management (CRM) functionalities. It leverages real-world e-commerce datasets (Olist, Online Retail, E-Commerce Churn) to perform risk analysis, plan marketing campaigns, and execute business decisions with human-in-the-loop approval.
 
-## 🏗️ Architecture (Turborepo Monorepo)
+### Architecture
+- **Monorepo Structure**: Managed by Turborepo, utilizing `npm` workspaces.
+- **Frontend (`apps/web`)**: Next.js (React 19) application for the business dashboard.
+- **Backend API (`apps/api`)**: FastAPI application providing REST endpoints for CRM/ERP data and AI agent interactions.
+- **Worker (`apps/worker`)**: Python-based ETL pipeline that loads datasets from Kaggle into PostgreSQL and generates embeddings.
+- **Shared Packages (`packages/`)**:
+  - `db-core`: SQLAlchemy models, migrations (Alembic), and database utilities.
+  - `ai-engine`: ML training pipelines, recommendation logic, and agentic workflows.
+  - `shared`: Pydantic models and shared utilities.
+  - `ui`: Shared UI component library.
 
-The project is organized as a monorepo using Turborepo to ensure consistency between the UI, AI logic, and data layers.
+### Core Technologies
+- **Database**: PostgreSQL with `pgvector` for semantic search.
+- **AI/ML**:
+  - Google Gemini (`text-embedding-004`) for high-quality text embeddings.
+  - Local Ollama (`nomic-embed-text`) as a cost-effective alternative (toggle via `USE_OLLAMA=true`).
+  - Scikit-learn for clustering (K-Means), classification (Decision Tree, Logistic Regression), and forecasting.
+- **Orchestration**: Turborepo for workspace tasks, Docker Compose for infrastructure.
 
-### 📱 Apps
-- **`apps/web`**: Next.js 15 (App Router) executive dashboard. Displays ERP reports, customer heatmaps, and AI "Stream of Thoughts".
-- **`apps/worker`**: Python-based background processes, specifically for **Direct ETL** loading data from Kaggle directly into PostgreSQL.
-- **`apps/api`** (Planned/Referenced): FastAPI Gateway for authentication, session management, and AI coordination.
+---
 
-### 📦 Packages
-- **`packages/ui`**: Shared UI component library built with React 19, Tailwind CSS 4, Radix UI, and Shadcn UI.
-- **`packages/eslint-config`**: Shared ESLint configurations.
-- **`packages/typescript-config`**: Shared TypeScript configurations.
-- **`packages/ai-engine`** (Planned/Referenced): LangGraph-based AI logic using Gemini API.
-- **`packages/db-core`** (Planned/Referenced): PostgreSQL management with SQLAlchemy and `pgvector`.
-- **`packages/mcp-servers`** (Planned/Referenced): Model Context Protocol (MCP) servers for agent tools.
-
-## 🚀 Getting Started
+## Building and Running
 
 ### Prerequisites
 - Node.js >= 20
-- Python 3.x
-- Docker (for PostgreSQL)
-- Kaggle API Key (for ETL)
-- Google Gemini API Key
+- Python 3.11
+- Docker & Docker Compose
+- Kaggle API Credentials (set in `.env`)
+- (Optional) Google API Key or local Ollama instance for embeddings.
 
-### Installation
+### Key Commands
+
+#### Setup
 ```bash
+# Install dependencies for all workspaces
 npm install
-```
+pip install -r requirements.txt
 
-### Environment Setup
-Create a `.env` file in the root directory based on `.env.example`:
-```bash
+# Setup environment
 cp .env.example .env
+# Edit .env with your KAGGLE_USERNAME, KAGGLE_KEY, and GOOGLE_API_KEY
 ```
-Ensure you fill in `DATABASE_URL`, `GOOGLE_API_KEY`, `KAGGLE_USERNAME`, and `KAGGLE_KEY`.
 
-### Database & ETL
-1. Start the database:
-   ```bash
-   docker compose up db -d
-   ```
-2. Run the ETL process:
-   ```bash
-   python apps/worker/main.py
-   ```
-
-### Development
-Start all applications in development mode:
+#### Infrastructure & Data
 ```bash
-npm run dev
+# Start database (pgvector)
+docker-compose up -d db
+
+# Run database migrations
+cd packages/db-core && alembic upgrade head
+
+# Validate Kaggle datasets (Check connectivity/availability)
+python apps/worker/validate_datasets.py
+
+# Run ETL and initial ML training
+python apps/worker/main.py
 ```
 
-## 🛠️ Development Commands
+#### Development
+```bash
+# Run all applications in development mode (Turbo)
+npm run dev
 
-- `npm run build`: Build all workspace projects.
-- `npm run dev`: Start all projects in development mode.
-- `npm run lint`: Run linting across the monorepo.
-- `npm run format`: Format code using Prettier.
-- `npm run typecheck`: Run TypeScript type checking.
+# Run specific apps via Docker
+docker-compose up -d api worker
+```
 
-## 📜 Development Conventions
+#### Quality Control
+```bash
+npm run lint       # Lint all packages
+npm run typecheck  # Run TypeScript type checks
+npm run test       # Run tests (if available)
+```
 
-### Tech Stack
-- **Frontend**: React 19, Next.js 15, Tailwind CSS 4, Lucide React.
-- **UI Components**: Radix UI primitives, Shadcn UI patterns.
-- **Styling**: Vanilla CSS with Tailwind CSS 4 utilities.
-- **Backend/Worker**: Python, FastAPI, SQLAlchemy.
-- **AI**: LangGraph, Gemini API (Flash/Pro).
-- **Database**: PostgreSQL with `pgvector` for semantic search.
+---
 
-### Monorepo Management
-- Use `npm` as the package manager.
-- New shared components should be added to `packages/ui`.
-- Use Turborepo for task orchestration.
+## Development Conventions
 
-### AI Integration
-- Agents are designed with an **Observe-Analyze-Plan-Act** loop.
-- Interactions with the database should go through MCP Servers to enforce security guardrails.
-- Human-in-the-loop (HITL) is required for marketing executions and database updates.
+### Coding Style
+- **Python**: Follows PEP 8. Uses FastAPI for APIs and SQLAlchemy for ORM. Path management often involves manual `sys.path.append` to resolve workspace packages.
+- **TypeScript/React**: Modern React 19 patterns. Tailwind CSS for styling. Strictly typed with TypeScript.
+
+### Data Patterns
+- **3-Layer Topology**:
+  1. **Core**: Olist Brazilian E-Commerce (Operational data).
+  2. **Satellite 1**: Online Retail (RFM/Transaction data).
+  3. **Satellite 2**: E-Commerce Churn (Behavioral/Label data).
+- **Embeddings**: Standardized on **768 dimensions** to support both Gemini and local Ollama (`nomic-embed-text`) without schema changes.
+
+### Machine Learning
+- ML models are trained on-demand via the worker or API population scripts.
+- Metrics and recommendations are persisted in the database for frontend consumption.
+- Explainability (SHAP) is integrated into model training pipelines when available.
+
+### Infrastructure
+- **Docker**: Used for consistent development and deployment environments.
+- **Environment Variables**: Managed via `.env` files. Crucial variables include `DATABASE_URL`, `KAGGLE_USERNAME`, `KAGGLE_KEY`, and `USE_OLLAMA`.

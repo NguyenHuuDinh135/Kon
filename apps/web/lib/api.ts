@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = typeof window === "undefined"
+  ? (process.env.INTERNAL_API_URL || "http://localhost:8000")
+  : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
 
 async function getAuthHeader(): Promise<Record<string, string>> {
   // Client side
@@ -45,6 +47,27 @@ export async function login(username: string, password: string) {
   return data;
 }
 
+export async function register(userData: any) {
+  const res = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Registration failed");
+  }
+
+  return res.json();
+}
+
+export async function fetchMe() {
+  const res = await fetchWithAuth(`${API_BASE_URL}/auth/me`);
+  if (!res.ok) throw new Error("Failed to fetch user profile");
+  return res.json();
+}
+
 export function logout() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("kon_token");
@@ -63,7 +86,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     const res = await fetch(url, { ...options, headers });
     if (res.status === 401) {
       logout();
-      if (typeof window !== "undefined") {
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
     }
@@ -110,11 +133,54 @@ export async function searchBehavior(query: string) {
 }
 
 export async function runAgent(prompt: string) {
-  const res = await fetchWithAuth(`${API_BASE_URL}/agent/run?prompt=${encodeURIComponent(prompt)}`, {
+  const res = await fetchWithAuth(`${API_BASE_URL}/agent/run`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
   });
   if (!res.ok) throw new Error("Agent failed");
   return res.json();
+}
+
+export async function streamAgent(
+  prompt: string,
+  onEvent: (event: { type: string; content: string }) => void
+): Promise<void> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("kon_token") : null;
+  const res = await fetch(`${API_BASE_URL}/agent/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ prompt }),
+  });
+
+  if (!res.ok) throw new Error("Agent stream failed");
+  if (!res.body) throw new Error("No response body");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") return;
+        try {
+          onEvent(JSON.parse(data));
+        } catch {}
+      }
+    }
+  }
 }
 
 // --- CRUD API ---
@@ -277,8 +343,8 @@ export async function fetchCampaigns() {
 
 export async function createCampaign(data: {
   name: string;
-  segment: string;
-  discount_percent: number;
+  segment_target: string;
+  discount_pct: number;
 }) {
   const res = await fetchWithAuth(`${API_BASE_URL}/campaigns`, {
     method: 'POST',

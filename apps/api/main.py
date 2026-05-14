@@ -1,10 +1,14 @@
 import os
 import sys
+import json
 from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime
+import uuid
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -13,6 +17,7 @@ from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response
 
 # Add project root to sys.path to find local packages
+sys.path.insert(0, os.path.dirname(__file__))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/db-core"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/shared"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/ai-engine"))
@@ -25,7 +30,7 @@ from shared import (
     Product as SharedProduct,
     Order as SharedOrder,
 )
-from ai_engine.agent import run_agent
+from ai_engine.agent import run_agent, stream_agent
 from fastapi.middleware.cors import CORSMiddleware
 from auth import get_current_user, require_admin
 
@@ -34,6 +39,7 @@ from routers.predictions import router as predictions_router
 from routers.analytics import router as analytics_router
 from routers.notifications import router as notifications_router
 from routers.campaigns import router as campaigns_router
+from routers.search import router as search_router
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Kon AI ERP & CRM API")
@@ -71,6 +77,7 @@ app.include_router(predictions_router, tags=["predictions"])
 app.include_router(analytics_router, tags=["analytics"])
 app.include_router(notifications_router)
 app.include_router(campaigns_router)
+app.include_router(search_router)
 
 
 @app.get("/")
@@ -123,11 +130,14 @@ def get_products(
     skip: int = 0,
     limit: int = 100,
     category: str = None,
+    search: str = None,
     db: Session = Depends(get_db),
 ):
     query = db.query(Product)
     if category:
         query = query.filter(Product.product_category_name == category)
+    if search:
+        query = query.filter(Product.product_category_name.ilike(f"%{search}%"))
     return query.offset(skip).limit(limit).all()
 
 
@@ -137,6 +147,55 @@ def get_product(product_id: str, db: Session = Depends(get_db)):
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
+
+class ProductCreate(BaseModel):
+    product_category_name: str
+    product_weight_g: Optional[float] = None
+    product_length_cm: Optional[float] = None
+    product_height_cm: Optional[float] = None
+    product_width_cm: Optional[float] = None
+    product_photos_qty: Optional[int] = None
+
+
+@app.post("/products")
+@limiter.limit("30/minute")
+def create_product(request: Request, product_data: ProductCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    new_product = Product(
+        product_id=str(uuid.uuid4()),
+        product_category_name=product_data.product_category_name,
+        product_weight_g=product_data.product_weight_g,
+        product_length_cm=product_data.product_length_cm,
+        product_height_cm=product_data.product_height_cm,
+        product_width_cm=product_data.product_width_cm,
+        product_photos_qty=product_data.product_photos_qty,
+    )
+    db.add(new_product)
+    db.commit()
+    db.refresh(new_product)
+    return {"product_id": new_product.product_id, "product_category_name": new_product.product_category_name}
+
+
+@app.put("/products/{product_id}")
+@limiter.limit("30/minute")
+def update_product(request: Request, product_id: str, product_data: ProductCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.product_id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    product.product_category_name = product_data.product_category_name
+    if product_data.product_weight_g is not None:
+        product.product_weight_g = product_data.product_weight_g
+    if product_data.product_photos_qty is not None:
+        product.product_photos_qty = product_data.product_photos_qty
+    if product_data.product_length_cm is not None:
+        product.product_length_cm = product_data.product_length_cm
+    if product_data.product_height_cm is not None:
+        product.product_height_cm = product_data.product_height_cm
+    if product_data.product_width_cm is not None:
+        product.product_width_cm = product_data.product_width_cm
+    db.commit()
+    db.refresh(product)
+    return {"product_id": product.product_id, "product_category_name": product.product_category_name}
 
 
 @app.delete("/products/{product_id}")
@@ -230,13 +289,32 @@ def create_order(order_data: Dict, db: Session = Depends(get_db), current_user: 
 # --- MISC ENDPOINTS ---
 
 
+class AgentRequest(BaseModel):
+    prompt: str = Field(max_length=2000)
+
+
 @app.post("/agent/run")
-def trigger_agent(prompt: str, current_user: User = Depends(get_current_user)):
+@limiter.limit("10/minute")
+def trigger_agent(request: Request, body: AgentRequest, current_user: User = Depends(get_current_user)):
     try:
-        result = run_agent(prompt)
+        result = run_agent(body.prompt)
         return {"result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/agent/stream")
+@limiter.limit("10/minute")
+def stream_agent_endpoint(request: Request, body: AgentRequest, current_user: User = Depends(get_current_user)):
+    def event_generator():
+        try:
+            for event in stream_agent(body.prompt):
+                yield f"data: {json.dumps(event)}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 if __name__ == "__main__":

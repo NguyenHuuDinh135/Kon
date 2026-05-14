@@ -1,15 +1,28 @@
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import pandas as pd
+import numpy as np
 
 from db_core import get_db, engine
 from db_core.models import User
 from auth import get_current_user, require_admin
 
 router = APIRouter()
+
+
+def get_safe_params(data):
+    """Helper to handle JSON parameters that might be already parsed by SQLAlchemy/Postgres."""
+    if isinstance(data, dict):
+        return data
+    if isinstance(data, str):
+        try:
+            return json.loads(data)
+        except:
+            return {}
+    return {}
 
 
 @router.get("/predictions/decision-tree")
@@ -36,6 +49,7 @@ def get_decision_tree_predictions(
         return {"predictions": [], "summary": {}}
 
     summary = df["DT_Label"].value_counts().to_dict()
+    df = df.replace({np.nan: None, np.inf: None, -np.inf: None})
     return {"predictions": df.to_dict(orient="records"), "summary": summary, "total": len(df)}
 
 
@@ -43,15 +57,11 @@ def get_decision_tree_predictions(
 def get_clustering_predictions(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    """K-Means clustering results from customer_churn table (Cluster column added by ML agent)."""
+    """K-Means clustering results from customer_segments table (RFM-based)."""
     query = """
-    SELECT "CustomerID", "Gender", "Tenure", "CityTier",
-           "PreferedOrderCat", "SatisfactionScore",
-           "OrderCount", "CashbackAmount", "Churn",
-           "Cluster"
-    FROM customer_churn
-    WHERE "Cluster" IS NOT NULL
-    ORDER BY "Cluster"
+    SELECT "CustomerID", cluster, cluster_label, recency, frequency, monetary
+    FROM customer_segments
+    ORDER BY cluster
     """
     try:
         df = pd.read_sql(query, engine)
@@ -61,24 +71,21 @@ def get_clustering_predictions(
     if df.empty:
         return {"predictions": [], "clusters": []}
 
-    cluster_names = {0: "High Value", 1: "At Risk", 2: "Loyal", 3: "New/Casual"}
-    df["cluster_label"] = df["Cluster"].map(cluster_names)
-
     clusters_summary = []
-    for cluster_id in sorted(df["Cluster"].unique()):
-        group = df[df["Cluster"] == cluster_id]
+    for cluster_id in sorted(df["cluster"].unique()):
+        group = df[df["cluster"] == cluster_id]
         clusters_summary.append(
             {
                 "cluster_id": int(cluster_id),
-                "label": cluster_names.get(int(cluster_id), f"Cluster {cluster_id}"),
+                "label": group["cluster_label"].iloc[0],
                 "count": len(group),
-                "avg_tenure": round(float(group["Tenure"].mean()), 1) if "Tenure" in group else None,
-                "avg_order_count": round(float(group["OrderCount"].mean()), 1) if "OrderCount" in group else None,
-                "avg_cashback": round(float(group["CashbackAmount"].mean()), 2) if "CashbackAmount" in group else None,
-                "churn_rate": round(float(group["Churn"].mean()), 4),
+                "avg_recency": round(float(group["recency"].mean()), 1),
+                "avg_frequency": round(float(group["frequency"].mean()), 1),
+                "avg_monetary": round(float(group["monetary"].mean()), 2),
             }
         )
 
+    df = df.replace({np.nan: None, np.inf: None, -np.inf: None})
     return {"predictions": df.to_dict(orient="records"), "clusters": clusters_summary, "total": len(df)}
 
 
@@ -118,6 +125,7 @@ def get_logistic_regression_predictions(
         "low_risk_count": int((df["Churn_Probability"] <= 0.3).sum()),
     }
 
+    df = df.replace({np.nan: None, np.inf: None, -np.inf: None})
     return {"predictions": df.to_dict(orient="records"), "summary": summary, "total": total}
 
 
@@ -147,6 +155,7 @@ def get_model_comparison(
     if "Cluster" in df.columns:
         df["cluster_label"] = df["Cluster"].map(cluster_names)
 
+    df = df.replace({np.nan: None, np.inf: None, -np.inf: None})
     return {"customers": df.to_dict(orient="records"), "total": len(df)}
 
 
@@ -163,21 +172,23 @@ def get_model_metrics(
     """
     try:
         df = pd.read_sql(query, engine)
+        # Handle NaN values for JSON compatibility
+        df = df.replace({np.nan: None})
         return df.to_dict(orient="records")
     except Exception:
         return []
 
 
 @router.post("/models/retrain")
-def retrain_models(current_user: User = Depends(require_admin)):
+def retrain_models(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(require_admin),
+):
     """Manually trigger model retraining (admin only)."""
     from ai_engine.ml_models import run_all_ml_tasks
 
-    try:
-        run_all_ml_tasks()
-        return {"message": "All models retrained successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    background_tasks.add_task(run_all_ml_tasks)
+    return {"message": "Model retraining started in background", "status": "accepted"}
 
 
 @router.get("/models/evaluation-report")
@@ -194,7 +205,7 @@ def get_evaluation_report(
     df = pd.read_sql(query, engine)
     reports = []
     for _, row in df.iterrows():
-        params = json.loads(row["parameters"]) if row["parameters"] else {}
+        params = get_safe_params(row["parameters"])
         reports.append(
             {
                 "model_name": row["model_name"],
@@ -225,7 +236,7 @@ def get_shap_values(
     df = pd.read_sql(query, engine, params={"name": model_name})
     if df.empty:
         return {"model_name": model_name, "shap_importance": {}, "feature_importance": {}}
-    params = json.loads(df.iloc[0]["parameters"]) if df.iloc[0]["parameters"] else {}
+    params = get_safe_params(df.iloc[0]["parameters"])
     return {
         "model_name": model_name,
         "shap_importance": params.get("shap_importance", {}),
@@ -247,7 +258,7 @@ def get_roc_curve(
     df = pd.read_sql(query, engine)
     if df.empty:
         return {"roc_curve": None}
-    params = json.loads(df.iloc[0]["parameters"]) if df.iloc[0]["parameters"] else {}
+    params = get_safe_params(df.iloc[0]["parameters"])
     return params.get("roc_curve", {"fpr": [], "tpr": [], "auc": 0})
 
 
@@ -265,6 +276,8 @@ def get_model_history(
         LIMIT 50
     """)
     df = pd.read_sql(query, engine)
+    # Handle NaN values
+    df = df.replace({np.nan: None})
     return df.to_dict(orient="records")
 
 
@@ -283,7 +296,7 @@ def get_learning_curves(
     df = pd.read_sql(query, engine, params={"name": model_name})
     if df.empty:
         return {"model_name": model_name, "learning_curve": None}
-    params = json.loads(df.iloc[0]["parameters"]) if df.iloc[0]["parameters"] else {}
+    params = get_safe_params(df.iloc[0]["parameters"])
     return {
         "model_name": model_name,
         "learning_curve": params.get("learning_curve"),

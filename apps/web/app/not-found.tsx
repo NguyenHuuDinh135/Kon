@@ -69,7 +69,7 @@ export default function NotFound() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="-mt-4 text-lg text-zinc-400 md:text-xl"
         >
-          This page drifted into the void.
+          Trang này không tồn tại.
         </motion.p>
 
         <motion.p
@@ -78,7 +78,7 @@ export default function NotFound() {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="mt-2 max-w-md text-sm text-zinc-500"
         >
-          The page you are looking for does not exist or has been moved.
+          Trang bạn đang tìm không tồn tại hoặc đã bị di chuyển.
         </motion.p>
 
         {/* Button */}
@@ -90,11 +90,11 @@ export default function NotFound() {
         >
           <Button
             asChild
-            className="h-11 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 px-6 font-medium text-white transition-all hover:from-teal-500 hover:to-emerald-500 hover:shadow-[0_0_24px_rgba(20,184,166,0.3)]"
+            className="h-11 rounded-xl bg-primary px-6 font-medium text-primary-foreground transition-all hover:bg-primary/90"
           >
             <Link href="/dashboard">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
+              Về trang chủ
             </Link>
           </Button>
         </motion.div>

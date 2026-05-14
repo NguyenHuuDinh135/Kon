@@ -6,7 +6,7 @@ export default function AgentPage() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight text-primary">Kon AI Agent</h2>
         <p className="text-muted-foreground">
-          Autonomous ERP specialist. I can analyze sales, predict churn, and perform complex SQL queries.
+          Chuyên gia ERP tự động. Phân tích doanh số, dự đoán churn và thực hiện truy vấn SQL phức tạp.
         </p>
       </div>
 

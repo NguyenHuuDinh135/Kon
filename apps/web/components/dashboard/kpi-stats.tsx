@@ -18,46 +18,46 @@ interface KPIStatsProps {
 export function KPIStats({ data }: KPIStatsProps) {
   const stats = [
     {
-      title: "Total Customers",
+      title: "Tổng khách hàng",
       value: data.total_customers,
       icon: Users,
-      description: "ERP + CRM Integrated",
-      gradient: "from-blue-500/20 to-cyan-500/5",
-      iconBg: "bg-blue-500/10 border-blue-500/20",
-      iconColor: "text-blue-400",
-      sparkColor: "#3b82f6",
+      description: "Tích hợp ERP + CRM",
+      gradient: "from-chart-1/20 to-chart-1/5",
+      iconBg: "bg-chart-1/10 border-chart-1/20",
+      iconColor: "text-chart-1",
+      sparkColor: "var(--color-chart-1)",
     },
     {
-      title: "Total Orders",
+      title: "Tổng đơn hàng",
       value: data.total_orders,
       icon: ShoppingBag,
-      description: "Northwind Data",
-      gradient: "from-emerald-500/20 to-teal-500/5",
-      iconBg: "bg-emerald-500/10 border-emerald-500/20",
-      iconColor: "text-emerald-400",
-      sparkColor: "#10b981",
+      description: "Dữ liệu Olist",
+      gradient: "from-chart-2/20 to-chart-2/5",
+      iconBg: "bg-chart-2/10 border-chart-2/20",
+      iconColor: "text-chart-2",
+      sparkColor: "var(--color-chart-2)",
     },
     {
-      title: "Total Revenue",
+      title: "Tổng doanh thu",
       value: data.total_revenue,
       icon: DollarSign,
-      description: "Gross Freight",
+      description: "Tổng phí vận chuyển",
       prefix: "$",
       decimalPlaces: 2,
-      gradient: "from-amber-500/20 to-yellow-500/5",
-      iconBg: "bg-amber-500/10 border-amber-500/20",
-      iconColor: "text-amber-400",
-      sparkColor: "#f59e0b",
+      gradient: "from-chart-3/20 to-chart-3/5",
+      iconBg: "bg-chart-3/10 border-chart-3/20",
+      iconColor: "text-chart-3",
+      sparkColor: "var(--color-chart-3)",
     },
     {
-      title: "Churn Alerts",
+      title: "Cảnh báo rời bỏ",
       value: data.churn_alerts_count,
       icon: AlertTriangle,
-      description: "AI Predicted Risk",
-      gradient: "from-rose-500/20 to-red-500/5",
-      iconBg: "bg-rose-500/10 border-rose-500/20",
-      iconColor: "text-rose-400",
-      sparkColor: "#ef4444",
+      description: "AI dự đoán rủi ro",
+      gradient: "from-destructive/20 to-destructive/5",
+      iconBg: "bg-destructive/10 border-destructive/20",
+      iconColor: "text-destructive",
+      sparkColor: "var(--color-chart-4)",
       hasBeam: true,
     },
   ];
@@ -70,14 +70,14 @@ export function KPIStats({ data }: KPIStatsProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: i * 0.1 }}
-          className="group relative overflow-hidden rounded-2xl border border-zinc-800/50 bg-zinc-900/50 p-6 backdrop-blur-xl transition-all duration-300 hover:border-zinc-700/50 hover:bg-zinc-900/80 hover:shadow-[0_0_30px_rgba(0,0,0,0.3)]"
+          className="group relative overflow-hidden rounded-2xl border bg-card p-6 backdrop-blur-xl transition-all duration-300 hover:border-primary/50 hover:bg-muted/30"
         >
           {stat.hasBeam && (
             <BorderBeam
               size={200}
               duration={10}
-              colorFrom="#ef4444"
-              colorTo="#f97316"
+              colorFrom="var(--color-primary)"
+              colorTo="var(--color-destructive)"
               borderWidth={1}
             />
           )}
@@ -117,20 +117,20 @@ export function KPIStats({ data }: KPIStatsProps) {
             </div>
 
             <div className="mt-4">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 {stat.title}
               </p>
-              <div className="mt-1 flex items-baseline gap-0.5 text-3xl font-bold tracking-tight text-white">
+              <div className="mt-1 flex items-baseline gap-0.5 text-3xl font-bold tracking-tight text-foreground">
                 {stat.prefix && (
-                  <span className="text-xl text-zinc-400">{stat.prefix}</span>
+                  <span className="text-xl text-muted-foreground">{stat.prefix}</span>
                 )}
                 <NumberTicker
                   value={stat.value}
                   decimalPlaces={stat.decimalPlaces || 0}
-                  className="text-white"
+                  className="text-foreground"
                 />
               </div>
-              <p className="mt-2 text-xs text-zinc-500">
+              <p className="mt-2 text-xs text-muted-foreground">
                 {stat.description}
               </p>
             </div>

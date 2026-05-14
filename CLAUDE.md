@@ -1,156 +1,139 @@
-# Kon: Autonomous AI ERP & CRM System
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Architecture
 
-Turborepo monorepo with dual-language stack:
-- **Frontend**: `apps/web` — Next.js 16, React 19, Tailwind 4, shadcn/Radix, Recharts, Framer Motion
-- **API**: `apps/api` — FastAPI (Python), JWT auth, slowapi rate limiting, uvicorn
-- **Worker**: `apps/worker` — Python ETL pipeline (Kaggle → PostgreSQL) + APScheduler
-- **AI Engine**: `packages/ai-engine` — scikit-learn ML models + LangGraph + Gemini agent
-- **Database**: PostgreSQL + pgvector (Docker)
-- **MCP Servers**: `packages/mcp-servers` — Agent tools with guardrails
+Turborepo monorepo with dual-language stack (TypeScript frontend + Python backend):
 
-## Datasets (3-Layer Topology)
+```
+apps/web       → Next.js 16 (React 19, Tailwind 4, Turbopack dev)
+apps/api       → FastAPI (JWT auth, slowapi rate limiting, uvicorn)
+apps/worker    → ETL pipeline (Kaggle → PostgreSQL) + APScheduler (4h ML retraining cycle)
+packages/ui    → 74 shadcn/Radix components, Recharts, Framer Motion (motion v12)
+packages/ai-engine → scikit-learn ML models + LangGraph agent + local Ollama (qwen2.5:7B) with Gemini fallback
+packages/db-core   → SQLAlchemy models + Alembic migrations + pgvector
+packages/shared    → Pydantic schemas shared between API and frontend
+packages/mcp-servers → 7 agent tools with guardrails
+```
 
-| Layer | Dataset | Source | Rows |
-|-------|---------|--------|------|
-| ERP Core | Olist Brazilian E-Commerce | `olistbr/brazilian-ecommerce` | 100K+ orders, 9 tables |
-| Satellite 1 | Online Retail (UCI) | `tunguz/online-retail` | 541K transactions |
-| Satellite 2 | E-Commerce Churn | `ankitverma2010/ecommerce-customer-churn-analysis-and-prediction` | 5,630 labeled customers |
+Two route groups in `apps/web`:
+- `(admin)` — dashboard with sidebar, predictions, agent chat (requires auth)
+- `(storefront)` — public product pages, login, checkout
 
-## Common Commands
+## Commands
 
 ```bash
 # Development
-npm run dev              # Start all apps (turbo)
-npm run build            # Production build
-npm run lint             # Lint all workspaces
-npm run typecheck        # TypeScript type check
+npm run dev                              # All apps via turbo (web :3000, api :8000)
+npm run build                            # Production build
+npm run lint && npm run typecheck         # Check all workspaces
+
+# API standalone
+PYTHONPATH=packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers \
+  uvicorn apps.api.main:app --reload --port 8000
 
 # Database
-docker compose up db -d  # Start PostgreSQL + pgvector
-docker compose up -d     # Start all services
+docker compose up db -d                  # PostgreSQL + pgvector only
+cd packages/db-core && alembic upgrade head  # Run migrations
 
-# ETL (loads all 3 datasets)
-python apps/worker/main.py
-
-# API
-uvicorn apps.api.main:app --reload --port 8000
+# ETL (loads 3 Kaggle datasets into PostgreSQL)
+PYTHONPATH=packages/db-core:packages/shared:packages/ai-engine \
+  python apps/worker/main.py
 
 # Testing
-pytest packages/ai-engine/tests/       # ML unit tests
-pytest apps/api/tests/                  # API integration tests
-npx playwright test --project=chromium  # E2E tests
+pytest apps/api/tests/                   # API integration
+pytest packages/ai-engine/tests/         # ML model tests
+pytest apps/worker/tests/                # ETL tests
+npx playwright test --project=chromium   # E2E (from apps/web)
 
-# Database Migrations
-cd packages/db-core && alembic upgrade head
-
-# Backup
-./scripts/backup.sh
+# Formatting
+npx prettier --write "apps/web/**/*.{ts,tsx}"
+ruff format apps/api/ packages/
+ruff check --fix apps/api/ packages/
 ```
+
+## Data Model
+
+Three Kaggle datasets form a 3-layer topology:
+
+| Layer | Tables | Purpose |
+|-------|--------|---------|
+| Olist (ERP Core) | orders, order_items, payments, reviews, customers, products, sellers, geolocation, category_translation | Order flow, revenue forecasting |
+| Online Retail | online_retail_transactions | RFM analysis, K-Means clustering (4,300 customers → 5 segments) |
+| E-Commerce Churn | customer_churn | Supervised ML with real churn labels (Decision Tree, Logistic Regression) |
+
+System tables: users, audit_logs, system_alerts, notifications, campaigns, ml_model_metrics, ml_recommendations.
+
+`customer_churn` has a pgvector `Vector(768)` column for embedding-based semantic search using nomic-embed-text (local) or Gemini (cloud).
+
+## AI Agent
+
+LangGraph ReAct agent (`packages/ai-engine/ai_engine/agent.py`) with **local Ollama (qwen2.5:7B) as primary** for chat and embeddings. Requires `USE_LOCAL_LLM=true` + `OLLAMA_BASE_URL` to be set. Falls back to Gemini Flash (cloud) if Ollama is unavailable or `USE_LOCAL_LLM=false`.
+
+For embeddings:
+- **Local**: `nomic-embed-text` model via Ollama (768-dim vectors) — recommended for cost savings
+- **Cloud**: Gemini text-embedding-004 (fallback if Ollama not available)
+
+7 MCP tools in `packages/mcp-servers/mcp_servers/tools.py`:
+- `query_database` — Read-only SQL (50 row limit)
+- `get_customer_profile` — Full customer profile + churn risk
+- `get_churn_risk_summary` — Aggregate churn statistics
+- `get_product_recommendations` — Collaborative filtering from Olist
+- `get_revenue_insights` — Monthly trends + top categories
+- `suggest_campaign` — Segment-based campaign generation
+- `search_similar_customers` — pgvector cosine similarity
+
+Autonomous loop (`ai_engine/autonomous_loop.py`): Observe → Analyze → Plan → Act cycle. Runs after ML training, creates draft campaigns (human-in-the-loop approval) and notifications.
 
 ## ML Models
 
-| Model | Data Source | Target | Features |
-|-------|-----------|--------|----------|
-| K-Means Clustering | Online Retail RFM (4,300 customers) | 5 segments | Recency, Frequency, Monetary |
-| Decision Tree | E-Commerce Churn (5,630 rows) | Engagement level | Tenure, Satisfaction, Devices, etc. |
-| Logistic Regression | E-Commerce Churn (5,630 rows) | Churn (0/1 REAL labels) | 13 numeric + 5 categorical features |
-| Revenue Forecast | Olist monthly revenue | Next 3 months | Linear regression on time series |
+Trained every 4 hours via APScheduler in the worker. All in `packages/ai-engine/ai_engine/ml_models.py`.
 
-Training runs every 4 hours via APScheduler. Includes: GridSearchCV, SHAP, ROC curves, learning curves, model versioning.
+| Model | Algorithm | Target |
+|-------|-----------|--------|
+| K-Means | KMeans(k=5) on RFM | 5 segments: VIP, Loyal, Regular, At Risk, Lost |
+| Decision Tree | GridSearchCV | Engagement level prediction |
+| Logistic Regression | LogisticRegression | Binary churn (0/1) |
+| Revenue Forecast | Linear Regression | Next 3 months revenue |
 
-## API Endpoints (30+)
+Model evaluation includes SHAP values, ROC curves, learning curves, and version history persisted to `ml_model_metrics` table.
 
-### Auth
-- POST /auth/login, /auth/register, GET /auth/me
+## Key Patterns
 
-### Dashboard & Analytics
-- GET /dashboard/kpis, /dashboard/revenue-over-time, /dashboard/segmentation-stats, /dashboard/top-products
-- GET /analytics/mdx/revenue-by-segment, /analytics/mdx/churn-by-demographics, /analytics/mdx/spending-distribution
-- GET /analytics/clv, /analytics/rfm-scores, /analytics/forecast
+- **API client** (`apps/web/lib/api.ts`): SSR uses `INTERNAL_API_URL` (defaults to `http://api:8000`), client uses `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`). Auth token stored in localStorage + cookie.
+- **Python path resolution**: Both `apps/api/main.py` and `apps/worker/main.py` manually append package paths with `sys.path.append`. When running outside Docker, set `PYTHONPATH=packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers`.
+- **UI components**: Import from `@workspace/ui/components/<name>`. Project-specific components in `apps/web/components/`.
+- **Route protection**: Admin routes use `require_admin` dependency (from `apps/api/routers/auth.py`). Frontend checks token presence.
+- **Rate limiting**: slowapi on all API endpoints, keyed by remote address.
 
-### ML Predictions
-- GET /predictions/decision-tree, /predictions/clustering, /predictions/logistic-regression, /predictions/compare
-- GET /models/metrics, /models/evaluation-report, /models/shap-values, /models/roc-curve, /models/history, /models/learning-curves
-- POST /models/retrain
+## Environment Variables
 
-### Business
-- GET/PUT /notifications, /notifications/unread-count, /notifications/{id}/read, /notifications/read-all
-- GET/POST /campaigns, PUT /campaigns/{id}/approve, /campaigns/{id}/execute
+Required in `.env` at project root:
+- `DATABASE_URL` — PostgreSQL connection (e.g., `postgresql://user:pass@localhost:5432/kon_erp_northwind`)
+- `JWT_SECRET_KEY` — 32+ characters
+- `KAGGLE_USERNAME` / `KAGGLE_KEY` — For ETL dataset downloads
 
-### CRUD
-- GET /products, /customers, /orders
-- POST /orders
+Local LLM & Embeddings (recommended):
+- `USE_LOCAL_LLM=true` — Enable local Ollama for agent chat
+- `LOCAL_LLM_MODEL=qwen2.5` — Ollama model name (e.g., `qwen2.5`, `llama3.1`)
+- `OLLAMA_BASE_URL=http://host.docker.internal:11434` — Ollama server endpoint
+- `USE_OLLAMA=true` — Enable local embeddings via `nomic-embed-text`
 
-### System
-- GET /health, /health/detailed
+Cloud LLM (fallback):
+- `GOOGLE_API_KEY` — Gemini API key (required only if local LLM unavailable)
 
-## Project Conventions
+Optional:
+- `CORS_ORIGINS` — Comma-separated (defaults to `http://localhost:3000`)
 
-- API routers in `apps/api/routers/` (auth, analytics, predictions, notifications, campaigns)
-- Python packages: `packages/ai-engine/`, `packages/db-core/`, `packages/shared/`, `packages/mcp-servers/`
-- PYTHONPATH: `packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers`
-- Env vars in `.env` (never commit)
-- Docker network: `kon_network`
-- Ports: API=8000, Web=3000, PostgreSQL=5432
+## Deployment
 
-## Security
+AWS via GitHub Actions (`deploy.yml`): builds Docker images → pushes to ECR → deploys. E2E tests run in separate workflow (`e2e.yml`).
 
-- Rate limiting via slowapi on all endpoints
-- Security headers (HSTS, X-Content-Type-Options, X-Frame-Options)
-- Account lockout after failed login attempts
-- Input validation with Pydantic schemas
-- JWT tokens with expiry and refresh
-- CORS whitelist configuration
-
-## DevOps
-
-- Multi-stage Docker builds (apps/api/Dockerfile, apps/worker/Dockerfile)
-- Alembic migrations in packages/db-core
-- CI/CD pipeline (lint, typecheck, test, build)
-- Backup script: ./scripts/backup.sh
-- APScheduler for periodic ML retraining
-
-## Key Environment Variables
-
-- `DATABASE_URL` — PostgreSQL connection string
-- `GOOGLE_API_KEY` — Gemini API access
-- `KAGGLE_USERNAME` / `KAGGLE_KEY` — Dataset ETL
-- `JWT_SECRET_KEY` — Must be 32+ chars, required
-- `CORS_ORIGINS` — Comma-separated allowed origins
-
-## AI Agent (packages/ai-engine + packages/mcp-servers)
-
-### LangGraph Agent
-- Model: Gemini 2.0 Flash Lite (temperature 0.3)
-- Pattern: ReAct with 7 specialized tools
-- System prompt: Business intelligence assistant with data context
-
-### MCP Tools (7 tools)
-- `query_database` — Read-only SQL on all tables (50 row limit)
-- `get_customer_profile` — Full customer profile with churn risk interpretation
-- `get_churn_risk_summary` — Aggregate churn statistics across customer base
-- `get_product_recommendations` — Collaborative filtering from Olist order history
-- `get_revenue_insights` — Monthly trends + top categories
-- `suggest_campaign` — Segment-based campaign suggestions with data
-- `search_similar_customers` — pgvector semantic search (Gemini embeddings)
-
-### Autonomous Loop (runs every 4h after ML training)
-1. Observe: Revenue trends, churn risk, categories, review health
-2. Analyze: Identify insights with urgency scoring
-3. Plan: Generate campaigns + notifications
-4. Act: Create draft campaigns (Human-in-the-Loop) + notifications
-5. Log: Audit trail in system_alerts
-
-### Vector Search
-- Embeddings: Gemini text-embedding-004 (768 dimensions)
-- Storage: pgvector on customer_churn table
-- Search: Cosine similarity for natural language customer queries
+Docker Compose runs three services (db, api, worker) on `kon_network`. The web app is built separately for deployment.
 
 ## Code Style
 
-- TypeScript: Prettier + ESLint (project configs)
+- TypeScript: Prettier + ESLint (workspace configs)
 - Python: Ruff format + Ruff check
 - Commits: conventional commits (`feat:`, `fix:`, `refactor:`, etc.)
-- Target: 80% test coverage minimum

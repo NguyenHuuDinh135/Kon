@@ -40,26 +40,24 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
     try {
       const orderData = {
-        CustomerID: formData.customerID,
-        Freight: 10.0, // Mock shipping fee
+        customer_id: formData.customerID,
+        order_status: "created",
         items: items.map((item) => ({
-          ProductID: item.id,
-          UnitPrice: item.price,
-          Quantity: item.quantity,
-          Discount: 0,
+          product_id: String(item.id),
+          seller_id: null,
+          price: item.price * item.quantity,
+          freight_value: 10.0 / items.length,
         })),
-        // ShipName, ShipAddress etc. can be sent if backend is updated to handle them
-        // For now, the current backend only uses CustomerID and Freight
       };
 
       await createOrder(orderData);
       
       setIsSuccess(true);
       clearCart();
-      toast.success("Order placed successfully!");
+      toast.success("Đặt hàng thành công!");
     } catch (error) {
       console.error("Order placement failed:", error);
-      toast.error("Failed to place order. Please try again.");
+      toast.error("Đặt hàng thất bại. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -71,13 +69,13 @@ export default function CheckoutPage() {
         <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
           <CheckCircle2 className="size-10 text-primary" />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight mb-4">Order Confirmed!</h1>
+        <h1 className="text-4xl font-bold tracking-tight mb-4">Đặt hàng thành công!</h1>
         <p className="text-muted-foreground max-w-md mb-8">
-          Thank you for your purchase. Your order has been received and is being processed.
-          You will receive an email confirmation shortly.
+          Cảm ơn bạn đã mua hàng. Đơn hàng đã được tiếp nhận và đang xử lý.
+          Bạn sẽ nhận email xác nhận trong thời gian ngắn.
         </p>
         <Button asChild size="lg">
-          <Link href="/products">Continue Shopping</Link>
+          <Link href="/products">Tiếp tục mua sắm</Link>
         </Button>
       </div>
     );
@@ -87,10 +85,10 @@ export default function CheckoutPage() {
     return (
       <div className="container mx-auto px-4 py-20 flex flex-col items-center text-center">
         <ShoppingBag className="size-16 text-muted-foreground/20 mb-6" />
-        <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
-        <p className="text-muted-foreground mb-8">You need to add some items to your cart before checking out.</p>
+        <h1 className="text-2xl font-bold mb-4">Giỏ hàng trống</h1>
+        <p className="text-muted-foreground mb-8">Bạn cần thêm sản phẩm vào giỏ trước khi thanh toán.</p>
         <Button asChild>
-          <Link href="/products">Browse Products</Link>
+          <Link href="/products">Xem sản phẩm</Link>
         </Button>
       </div>
     );
@@ -104,11 +102,11 @@ export default function CheckoutPage() {
       <Button variant="ghost" asChild className="mb-8 pl-0">
         <Link href="/products" className="flex items-center gap-2">
           <ChevronLeft className="size-4" />
-          Back to Shopping
+          Quay lại mua sắm
         </Link>
       </Button>
 
-      <h1 className="text-3xl font-bold tracking-tight mb-8">Checkout</h1>
+      <h1 className="text-3xl font-bold tracking-tight mb-8">Thanh toán</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Form */}
@@ -117,25 +115,25 @@ export default function CheckoutPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Truck className="size-5" />
-                Shipping Information
+                Thông tin giao hàng
               </CardTitle>
             </CardHeader>
             <CardContent>
               <form id="checkout-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="customerID">Customer ID (MVP)</Label>
+                  <Label htmlFor="customerID">Mã khách hàng (MVP)</Label>
                   <Input 
                     id="customerID" 
                     name="customerID" 
                     value={formData.customerID} 
                     onChange={handleInputChange} 
-                    placeholder="e.g. ALFKI"
+                    placeholder="VD: ALFKI"
                     required
                   />
-                  <p className="text-[10px] text-muted-foreground">In a real app, this would be your account ID.</p>
+                  <p className="text-[10px] text-muted-foreground">Trong ứng dụng thực, đây sẽ là mã tài khoản của bạn.</p>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="shipName">Full Name</Label>
+                  <Label htmlFor="shipName">Họ và tên</Label>
                   <Input 
                     id="shipName" 
                     name="shipName" 
@@ -145,7 +143,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="shipAddress">Address</Label>
+                  <Label htmlFor="shipAddress">Địa chỉ</Label>
                   <Input 
                     id="shipAddress" 
                     name="shipAddress" 
@@ -155,7 +153,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="shipCity">City</Label>
+                  <Label htmlFor="shipCity">Thành phố</Label>
                   <Input 
                     id="shipCity" 
                     name="shipCity" 
@@ -165,7 +163,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="shipCountry">Country</Label>
+                  <Label htmlFor="shipCountry">Quốc gia</Label>
                   <Input 
                     id="shipCountry" 
                     name="shipCountry" 
@@ -182,14 +180,14 @@ export default function CheckoutPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="size-5" />
-                Payment Method
+                Phương thức thanh toán
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="p-4 border rounded-md bg-muted/50 border-primary/20 flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Cash on Delivery</p>
-                  <p className="text-sm text-muted-foreground">Pay when you receive your order.</p>
+                  <p className="font-medium">Thanh toán khi nhận hàng</p>
+                  <p className="text-sm text-muted-foreground">Thanh toán khi bạn nhận được đơn hàng.</p>
                 </div>
                 <div className="size-4 rounded-full border-4 border-primary" />
               </div>
@@ -201,7 +199,7 @@ export default function CheckoutPage() {
         <div className="space-y-6">
           <Card className="sticky top-24">
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
+              <CardTitle>Tóm tắt đơn hàng</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -217,17 +215,17 @@ export default function CheckoutPage() {
               <Separator />
               <div className="space-y-1.5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">Tạm tính</span>
                   <span>${totalPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="text-muted-foreground">Phí vận chuyển</span>
                   <span>${shippingFee.toFixed(2)}</span>
                 </div>
               </div>
               <Separator />
               <div className="flex justify-between font-bold text-lg">
-                <span>Total</span>
+                <span>Tổng cộng</span>
                 <span className="text-primary">${grandTotal.toFixed(2)}</span>
               </div>
             </CardContent>
@@ -239,7 +237,7 @@ export default function CheckoutPage() {
                 size="lg"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Processing..." : "Place Order"}
+                {isSubmitting ? "Đang xử lý..." : "Đặt hàng"}
               </Button>
             </CardFooter>
           </Card>

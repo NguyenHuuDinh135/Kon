@@ -51,35 +51,47 @@ def get_dashboard_kpis(
         db.query(func.avg(CustomerChurn.SatisfactionScore)).scalar() or 0.0
     )
 
-    # Period-over-period trend calculations
+    # Average churn probability from ML predictions
+    avg_churn_prob_result = pd.read_sql(
+        'SELECT AVG("Churn_Probability") as avg_prob FROM customer_churn WHERE "Churn_Probability" IS NOT NULL',
+        engine,
+    )
+    avg_churn_prob = float(avg_churn_prob_result.iloc[0]["avg_prob"]) if not avg_churn_prob_result.empty and avg_churn_prob_result.iloc[0]["avg_prob"] is not None else 0.0
+
+    # Period-over-period trend using the latest month in the dataset (not CURRENT_TIMESTAMP)
     trend_query = """
+    WITH max_date AS (
+        SELECT DATE_TRUNC('month', MAX(TO_TIMESTAMP(order_purchase_timestamp, 'YYYY-MM-DD HH24:MI:SS'))) as latest_month
+        FROM orders
+    )
     SELECT
         COALESCE(SUM(CASE
             WHEN DATE_TRUNC('month', TO_TIMESTAMP(o.order_purchase_timestamp, 'YYYY-MM-DD HH24:MI:SS'))
-                 = DATE_TRUNC('month', CURRENT_TIMESTAMP)
+                 = md.latest_month
             THEN oi.price ELSE 0 END), 0) as current_month_revenue,
         COALESCE(SUM(CASE
             WHEN DATE_TRUNC('month', TO_TIMESTAMP(o.order_purchase_timestamp, 'YYYY-MM-DD HH24:MI:SS'))
-                 = DATE_TRUNC('month', CURRENT_TIMESTAMP - INTERVAL '1 month')
+                 = md.latest_month - INTERVAL '1 month'
             THEN oi.price ELSE 0 END), 0) as last_month_revenue,
         COUNT(DISTINCT CASE
             WHEN DATE_TRUNC('month', TO_TIMESTAMP(o.order_purchase_timestamp, 'YYYY-MM-DD HH24:MI:SS'))
-                 = DATE_TRUNC('month', CURRENT_TIMESTAMP)
+                 = md.latest_month
             THEN o.order_id END) as current_month_orders,
         COUNT(DISTINCT CASE
             WHEN DATE_TRUNC('month', TO_TIMESTAMP(o.order_purchase_timestamp, 'YYYY-MM-DD HH24:MI:SS'))
-                 = DATE_TRUNC('month', CURRENT_TIMESTAMP - INTERVAL '1 month')
+                 = md.latest_month - INTERVAL '1 month'
             THEN o.order_id END) as last_month_orders,
         COUNT(DISTINCT CASE
             WHEN DATE_TRUNC('month', TO_TIMESTAMP(o.order_purchase_timestamp, 'YYYY-MM-DD HH24:MI:SS'))
-                 = DATE_TRUNC('month', CURRENT_TIMESTAMP)
+                 = md.latest_month
             THEN o.customer_id END) as current_month_customers,
         COUNT(DISTINCT CASE
             WHEN DATE_TRUNC('month', TO_TIMESTAMP(o.order_purchase_timestamp, 'YYYY-MM-DD HH24:MI:SS'))
-                 = DATE_TRUNC('month', CURRENT_TIMESTAMP - INTERVAL '1 month')
+                 = md.latest_month - INTERVAL '1 month'
             THEN o.customer_id END) as last_month_customers
     FROM orders o
     JOIN order_items oi ON o.order_id = oi.order_id
+    CROSS JOIN max_date md
     """
     try:
         trend_df = pd.read_sql(trend_query, engine)
@@ -107,6 +119,8 @@ def get_dashboard_kpis(
         "total_revenue": round(total_revenue, 2),
         "churn_rate": churn_rate,
         "avg_satisfaction": round(float(avg_satisfaction), 2),
+        "churn_alerts_count": churned_count,
+        "avg_churn_risk": round(float(avg_churn_prob), 4),
         "revenue_trend": round(revenue_trend, 2) if revenue_trend is not None else None,
         "orders_trend": round(orders_trend, 2) if orders_trend is not None else None,
         "customers_trend": round(customers_trend, 2) if customers_trend is not None else None,
@@ -139,22 +153,31 @@ def get_revenue_over_time(
 def get_segmentation_stats(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    """Customer churn segmentation stats for pie charts."""
+    """Customer segmentation from K-Means RFM clustering."""
     query = """
-    SELECT
-        CASE
-            WHEN "Churn" = 1 THEN 'Churned'
-            ELSE 'Active'
-        END as segment,
-        COUNT(*) as count
-    FROM customer_churn
-    GROUP BY segment
+    SELECT cluster_label as segment, COUNT(*) as count
+    FROM customer_segments
+    GROUP BY cluster_label
+    ORDER BY count DESC
     """
     try:
         df = pd.read_sql(query, engine)
+        if df.empty:
+            raise Exception("No segments")
         return df.to_dict(orient="records")
     except Exception:
-        return []
+        query_fallback = """
+        SELECT
+            CASE WHEN "Churn" = 1 THEN 'Churned' ELSE 'Active' END as segment,
+            COUNT(*) as count
+        FROM customer_churn
+        GROUP BY segment
+        """
+        try:
+            df = pd.read_sql(query_fallback, engine)
+            return df.to_dict(orient="records")
+        except Exception:
+            return []
 
 
 @router.get("/dashboard/top-products")

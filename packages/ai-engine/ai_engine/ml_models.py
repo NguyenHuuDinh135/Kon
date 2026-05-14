@@ -213,6 +213,13 @@ def train_decision_tree():
 
     y_pred_test = clf.predict(X_test)
 
+    # Predictions for all data
+    df_clean = df_clean.copy()
+    df_clean['dt_label'] = clf.predict(X)
+    # Convert numeric prediction back to label name
+    df_clean['dt_label_name'] = df_clean['dt_label'].map(lambda x: labels_cat[x])
+    df_clean['dt_confidence'] = clf.predict_proba(X).max(axis=1)
+
     # Cross-validation for robust performance estimate
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     cv_scores = cross_val_score(clf, X, y, cv=skf, scoring='f1_weighted')
@@ -537,6 +544,9 @@ def run_all_ml_tasks():
     print("Running ML Pipeline...")
     print("=" * 60)
 
+    # Ensure columns exist in customer_churn
+    ensure_prediction_columns()
+
     print("\n[1/5] Training K-Means Clustering (Online Retail RFM)...")
     seg_result, seg_metrics = train_customer_segments()
     if seg_metrics:
@@ -551,6 +561,20 @@ def run_all_ml_tasks():
         print(f"  F1 Score: {dt_metrics.get('f1_score')}")
         print(f"  Best Params: {dt_metrics.get('best_params')}")
         save_model_metrics(dt_metrics)
+        
+        # Save DT predictions to customer_churn (batch update)
+        if isinstance(dt_result, pd.DataFrame):
+            print(f"  Saving Decision Tree predictions for {len(dt_result)} customers...")
+            updates = [
+                {"cid": int(row["CustomerID"]), "label": row["dt_label_name"], "conf": float(row["dt_confidence"])}
+                for _, row in dt_result.iterrows()
+            ]
+            with engine.connect() as conn:
+                conn.execute(
+                    text('UPDATE customer_churn SET "DT_Label" = :label, "DT_Confidence" = :conf WHERE "CustomerID" = :cid'),
+                    updates,
+                )
+                conn.commit()
 
     print("\n[3/5] Training Logistic Regression (Real Churn Labels)...")
     lr_result, lr_metrics = train_logistic_regression()
@@ -559,6 +583,20 @@ def run_all_ml_tasks():
         print(f"  ROC-AUC: {lr_metrics.get('roc_auc')}")
         print(f"  Churn Rate: {lr_metrics.get('churn_rate')}")
         save_model_metrics(lr_metrics)
+
+        # Save LR predictions to customer_churn (batch update)
+        if isinstance(lr_result, pd.DataFrame):
+            print(f"  Saving Logistic Regression predictions for {len(lr_result)} customers...")
+            updates = [
+                {"cid": int(row["CustomerID"]), "pred": int(row["churn_prediction"]), "prob": float(row["churn_probability"])}
+                for _, row in lr_result.iterrows()
+            ]
+            with engine.connect() as conn:
+                conn.execute(
+                    text('UPDATE customer_churn SET "Churn_Prediction" = :pred, "Churn_Probability" = :prob WHERE "CustomerID" = :cid'),
+                    updates,
+                )
+                conn.commit()
 
     print("\n[4/5] Training Revenue Forecast (Olist Monthly)...")
     rev_result, rev_metrics = train_revenue_forecast()
@@ -608,6 +646,21 @@ def run_all_ml_tasks():
         session.rollback()
     finally:
         session.close()
+
+
+def ensure_prediction_columns():
+    """Ensure customer_churn table has all necessary columns for ML predictions."""
+    cols = [
+        ("Cluster", "INTEGER"),
+        ("DT_Label", "VARCHAR(50)"),
+        ("DT_Confidence", "FLOAT"),
+        ("Churn_Prediction", "INTEGER"),
+        ("Churn_Probability", "FLOAT")
+    ]
+    with engine.connect() as conn:
+        for col_name, col_type in cols:
+            conn.execute(text(f"ALTER TABLE customer_churn ADD COLUMN IF NOT EXISTS \"{col_name}\" {col_type}"))
+        conn.commit()
 
 
 def save_model_metrics(metrics: dict):

@@ -7,9 +7,10 @@ Has access to 6 specialized tools for e-commerce analytics.
 import os
 from typing import Annotated, TypedDict, Sequence
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from mcp_servers.tools import (
     query_database,
     get_customer_profile,
@@ -21,6 +22,7 @@ from mcp_servers.tools import (
 )
 
 SYSTEM_PROMPT = """You are Kon AI, an autonomous ERP/CRM intelligence assistant for an e-commerce business.
+IMPORTANT: Always respond in Vietnamese. Never use Chinese characters.
 
 ## Your Knowledge Base
 - 100K+ orders from Brazilian e-commerce (Olist dataset)
@@ -59,16 +61,33 @@ class AgentState(TypedDict):
 
 def create_agent():
     """Create the LangGraph agent with tools."""
+    use_local = os.getenv("USE_LOCAL_LLM", "false").lower() == "true"
     api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        return None
 
-    model = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash-lite",
-        google_api_key=api_key,
-        temperature=0.3,
-        max_output_tokens=2048
-    )
+    if use_local:
+        # Use local Ollama instance
+        # For tool calling, we recommend models like qwen2.5:7b or llama3.1
+        ollama_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+        model_name = os.getenv("LOCAL_LLM_MODEL", "qwen2.5")
+        
+        model = ChatOllama(
+            model=model_name,
+            base_url=ollama_url,
+            temperature=0.1,
+        )
+        print(f"AI Agent: Initialized with LOCAL LLM ({model_name}) via Ollama at {ollama_url}")
+    else:
+        if not api_key:
+            return None
+
+        # Use gemini-flash-latest which points to the most stable flash model (1.5 or 2.0)
+        model = ChatGoogleGenerativeAI(
+            model="gemini-flash-latest",
+            google_api_key=api_key,
+            temperature=0.3,
+            max_output_tokens=2048
+        )
+        print("AI Agent: Initialized with Google Gemini (Cloud)")
 
     tools = [
         query_database,
@@ -91,8 +110,20 @@ def create_agent():
 
     def call_model(state: AgentState):
         messages = [SystemMessage(content=SYSTEM_PROMPT)] + list(state["messages"])
-        response = model_with_tools.invoke(messages)
-        return {"messages": [response]}
+        try:
+            response = model_with_tools.invoke(messages)
+            return {"messages": [response]}
+        except Exception as e:
+            if not use_local and ("429" in str(e) or "quota" in str(e).lower()):
+                # Fallback mock response for demo stability when quota is exceeded
+                mock_msg = HumanMessage(content="[DEMO MODE] The Gemini API quota is currently exceeded. In a production environment with billing enabled, I would now analyze the data and provide a detailed answer. Please check your Google Cloud Console for quota details.")
+                return {"messages": [mock_msg]}
+            
+            error_msg = f"Agent error details: {str(e)}"
+            if use_local and "404" in str(e):
+                error_msg = f"Local model '{os.getenv('LOCAL_LLM_MODEL', 'qwen2.5')}' not found. Please run 'ollama pull {os.getenv('LOCAL_LLM_MODEL', 'qwen2.5')}' on your host machine."
+            
+            return {"messages": [HumanMessage(content=f"I encountered an error: {error_msg}")]}
 
     workflow = StateGraph(AgentState)
     workflow.add_node("agent", call_model)
@@ -128,11 +159,41 @@ def run_agent(prompt: str) -> str:
         # Extract the final text response
         messages = result.get("messages", [])
         for msg in reversed(messages):
-            if hasattr(msg, "content") and msg.content and not hasattr(msg, "tool_calls"):
+            if isinstance(msg, AIMessage) and msg.content:
                 return msg.content
-            elif hasattr(msg, "content") and msg.content and hasattr(msg, "tool_calls") and not msg.tool_calls:
-                return msg.content
+        for msg in reversed(messages):
+            if isinstance(msg, ToolMessage) and msg.content:
+                return f"Based on my analysis:\n\n{msg.content}"
 
-        return "I processed your request but couldn't generate a text response."
+        return "I processed your request but couldn't generate a summary."
     except Exception as e:
         return f"Agent error: {str(e)}"
+
+
+def stream_agent(prompt: str):
+    """Stream the AI agent execution, yielding events for each step."""
+    agent = get_agent()
+    if agent is None:
+        yield {"type": "error", "content": "AI Agent unavailable — no LLM configured."}
+        return
+
+    try:
+        yield {"type": "status", "content": "Đang suy nghĩ..."}
+
+        for event in agent.stream({"messages": [HumanMessage(content=prompt)]}):
+            if "agent" in event:
+                msg = event["agent"]["messages"][-1]
+                if isinstance(msg, AIMessage):
+                    if msg.tool_calls:
+                        tool_names = [tc["name"] for tc in msg.tool_calls]
+                        yield {"type": "tool_call", "content": f"Đang truy vấn: {', '.join(tool_names)}"}
+                    elif msg.content:
+                        yield {"type": "token", "content": msg.content}
+            elif "tools" in event:
+                msg = event["tools"]["messages"][-1]
+                if isinstance(msg, ToolMessage):
+                    content_preview = str(msg.content)[:200]
+                    yield {"type": "tool_result", "content": content_preview}
+
+    except Exception as e:
+        yield {"type": "error", "content": f"Agent error: {str(e)}"}

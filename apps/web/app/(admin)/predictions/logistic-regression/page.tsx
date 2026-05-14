@@ -12,7 +12,9 @@ export default async function LogisticRegressionPage() {
   } catch {}
 
   const lrMetric = metrics.find((m: any) => m.model_name === "Logistic Regression");
-  const params = lrMetric?.parameters ? JSON.parse(lrMetric.parameters) : {};
+  const params = typeof lrMetric?.parameters === 'string' 
+    ? JSON.parse(lrMetric.parameters) 
+    : (lrMetric?.parameters || {});
 
   return (
     <LogisticRegressionContent

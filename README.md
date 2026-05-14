@@ -79,11 +79,11 @@
 
 | Component | Technology | Description |
 |-----------|-----------|-------------|
-| Chat Agent | LangGraph + Gemini 2.0 Flash | Answers business questions with 7 data tools |
+| Chat Agent | LangGraph + local Ollama (qwen2.5:7B) | Answers business questions with 7 data tools; Gemini fallback |
 | Autonomous Loop | Custom Python | Observe→Analyze→Plan→Act cycle every 4 hours |
-| Vector Search | pgvector + Gemini embeddings | Semantic customer search in natural language |
+| Vector Search | pgvector + nomic-embed-text | Semantic customer search (768-dim local embeddings); Gemini fallback |
 | Recommendations | Collaborative Filtering | Products from Olist co-purchase patterns |
-| Campaign AI | Rule-based + LLM | Auto-suggests retention campaigns for at-risk segments |
+| Campaign AI | Rule-based + local LLM | Auto-suggests retention campaigns for at-risk segments |
 
 **Autonomous Cycle Output:**
 - Creates draft campaigns for admin approval (Human-in-the-Loop)
@@ -196,7 +196,7 @@
 ### CRUD & System
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | /products | List products |
+| GET | /products | List products (supports `?search=` query param) |
 | GET | /customers | List customers |
 | GET | /orders | List orders |
 | POST | /orders | Create order |
@@ -214,6 +214,8 @@
 - Docker & Docker Compose
 - Kaggle account (for dataset ETL)
 
+> **Windows Users**: Please follow the [Windows Setup Guide](WINDOWS_GUIDE.md) for platform-specific instructions.
+
 ### Setup
 
 1. **Clone and install**:
@@ -228,8 +230,9 @@
    ```bash
    cp .env.example .env
    # Edit .env with your credentials:
-   # - GOOGLE_API_KEY (Gemini)
-   # - KAGGLE_USERNAME + KAGGLE_KEY
+   # - KAGGLE_USERNAME + KAGGLE_KEY (for ETL)
+   # - OLLAMA_BASE_URL + LOCAL_LLM_MODEL (local LLM)
+   # - GOOGLE_API_KEY (optional, fallback if Ollama unavailable)
    # - JWT_SECRET_KEY (32+ chars)
    ```
 
@@ -248,15 +251,51 @@
    python apps/worker/main.py
    ```
 
-6. **Start development**:
+6. **Validate Datasets** (check for errors or missing data):
+   ```bash
+   python apps/worker/validate_datasets.py
+   ```
+
+7. **Start development**:
    ```bash
    npm run dev
    ```
 
+## Local LLM & Embeddings with Ollama
+
+The system is configured to use **local Ollama by default** for both chat agent and embeddings. This saves costs and enables offline development.
+
+1. **Install Ollama** (https://ollama.ai) and pull models:
+   ```bash
+   ollama pull qwen2.5            # Chat LLM (7B recommended)
+   ollama pull nomic-embed-text   # Embeddings (768 dimensions)
+   ```
+
+2. **Ensure Ollama is running**:
+   ```bash
+   ollama serve
+   ```
+   (Runs on http://localhost:11434 by default)
+
+3. **Start the system** with default local config:
+   ```bash
+   npm run dev
+   ```
    This starts:
    - Web: http://localhost:3000
-   - API: http://localhost:8000
+   - API: http://localhost:8000 (uses Ollama)
    - API Docs: http://localhost:8000/docs
+
+4. **To use Gemini instead** (if Ollama unavailable):
+   ```bash
+   USE_LOCAL_LLM=false GOOGLE_API_KEY=your_key npm run dev
+   ```
+
+**Why local models?**
+- Zero API costs after initial download
+- Works offline
+- Faster iteration in development
+- 768-dim embeddings via nomic-embed-text match Gemini dimensions
 
 ---
 
@@ -269,7 +308,9 @@ pytest packages/ai-engine/tests/
 # API integration tests
 pytest apps/api/tests/
 
-# E2E tests (Playwright)
+# E2E tests (Playwright) — all 12 tests passing
+# Note: Runs against production build (next start) due to Turbopack CSS parsing in dev mode
+npm run build
 npx playwright test --project=chromium
 
 # TypeScript type checking
@@ -279,6 +320,8 @@ npm run typecheck
 npm run lint
 ruff check apps/ packages/
 ```
+
+**E2E Status**: 12/12 tests passing (auth, dashboard, predictions, analytics, campaigns, notifications)
 
 ---
 
@@ -294,17 +337,33 @@ ruff check apps/ packages/
 
 ## Environment Variables
 
+### Database & Auth
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `DB_USER` | Yes | PostgreSQL username |
-| `DB_PASSWORD` | Yes | PostgreSQL password |
-| `DB_NAME` | Yes | Database name |
-| `GOOGLE_API_KEY` | Yes | Gemini API key for AI Engine |
+| `JWT_SECRET_KEY` | Yes | Secret for JWT signing (32+ chars) |
 | `KAGGLE_USERNAME` | Yes | Kaggle account for dataset ETL |
 | `KAGGLE_KEY` | Yes | Kaggle API key |
-| `JWT_SECRET_KEY` | Yes | Secret for JWT signing (32+ chars) |
-| `CORS_ORIGINS` | No | Allowed origins (default: http://localhost:3000) |
+
+### Local LLM (Recommended)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `USE_LOCAL_LLM` | `true` | Enable local Ollama for agent chat |
+| `USE_OLLAMA` | `true` | Enable local embeddings (nomic-embed-text) |
+| `LOCAL_LLM_MODEL` | `qwen2.5` | Ollama model for chat (e.g., llama3.1, neural-chat) |
+| `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | Ollama server endpoint |
+
+### Cloud LLM (Fallback)
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GOOGLE_API_KEY` | No* | Gemini API key (only if Ollama unavailable) |
+
+### Optional
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated allowed origins |
+
+*Only required if `USE_LOCAL_LLM=false` or Ollama is unavailable
 
 ---
 
@@ -339,7 +398,7 @@ Kon/
 |-------|-----------|
 | Frontend | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, Radix, Recharts, Framer Motion |
 | Backend | FastAPI, SQLAlchemy, Alembic, slowapi, Pydantic |
-| AI/ML | scikit-learn, LangGraph, Google Gemini, SHAP |
+| AI/ML | scikit-learn, LangGraph, **Ollama (qwen2.5:7B)** for chat, **nomic-embed-text** for embeddings, Google Gemini (fallback), SHAP |
 | Database | PostgreSQL, pgvector |
 | DevOps | Docker, Turborepo, APScheduler |
-| Testing | Playwright, pytest, Vitest |
+| Testing | Playwright (12/12 E2E passing), pytest, Vitest |

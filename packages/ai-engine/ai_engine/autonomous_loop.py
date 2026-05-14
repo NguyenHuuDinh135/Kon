@@ -5,6 +5,7 @@ Runs periodically (every 4 hours after ML training).
 Implements: Observe -> Analyze -> Plan -> Act cycle.
 """
 import json
+import logging
 from datetime import datetime
 
 import pandas as pd
@@ -13,6 +14,8 @@ from sqlalchemy import text
 from db_core.database import engine, SessionLocal
 from db_core.models import Notification, Campaign, SystemAlert
 
+logger = logging.getLogger(__name__)
+
 
 def observe():
     """Phase 1: Gather current business state from database."""
@@ -20,75 +23,91 @@ def observe():
 
     with engine.connect() as conn:
         # Revenue trend
-        rev = conn.execute(text("""
-            SELECT DATE_TRUNC('month', order_purchase_timestamp::timestamp) as month,
-                   SUM(oi.price + oi.freight_value) as revenue
-            FROM orders o
-            JOIN order_items oi ON o.order_id = oi.order_id
-            WHERE o.order_status = 'delivered'
-            GROUP BY month ORDER BY month DESC LIMIT 3
-        """)).fetchall()
+        try:
+            rev = conn.execute(text("""
+                SELECT DATE_TRUNC('month', order_purchase_timestamp::timestamp) as month,
+                       SUM(oi.price + oi.freight_value) as revenue
+                FROM orders o
+                JOIN order_items oi ON o.order_id = oi.order_id
+                WHERE o.order_status = 'delivered'
+                GROUP BY month ORDER BY month DESC LIMIT 3
+            """)).fetchall()
 
-        if len(rev) >= 2:
-            current = float(rev[0][1]) if rev[0][1] else 0
-            previous = float(rev[1][1]) if rev[1][1] else 1
-            observations["revenue_trend"] = {
-                "current_month": round(current, 2),
-                "previous_month": round(previous, 2),
-                "change_pct": round((current - previous) / max(previous, 1) * 100, 1)
-            }
+            if len(rev) >= 2:
+                current = float(rev[0][1]) if rev[0][1] else 0
+                previous = float(rev[1][1]) if rev[1][1] else 1
+                observations["revenue_trend"] = {
+                    "current_month": round(current, 2),
+                    "previous_month": round(previous, 2),
+                    "change_pct": round((current - previous) / max(previous, 1) * 100, 1)
+                }
+        except Exception as e:
+            logger.warning(f"Failed to observe revenue: {e}")
+            observations["revenue_trend"] = {}
 
         # Churn risk
-        churn = conn.execute(text("""
-            SELECT
-                COUNT(*) as total,
-                SUM(CASE WHEN "Churn_Probability" > 0.7 THEN 1 ELSE 0 END) as high_risk,
-                ROUND(AVG("Churn_Probability")::numeric, 3) as avg_prob,
-                ROUND(AVG("SatisfactionScore")::numeric, 1) as avg_satisfaction
-            FROM customer_churn
-            WHERE "Churn_Probability" IS NOT NULL
-        """)).fetchone()
+        try:
+            churn = conn.execute(text("""
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN "Churn_Probability" > 0.7 THEN 1 ELSE 0 END) as high_risk,
+                    ROUND(AVG("Churn_Probability")::numeric, 3) as avg_prob,
+                    ROUND(AVG("SatisfactionScore")::numeric, 1) as avg_satisfaction
+                FROM customer_churn
+                WHERE "Churn_Probability" IS NOT NULL
+            """)).fetchone()
 
-        if churn:
-            observations["churn_status"] = {
-                "total_analyzed": churn[0],
-                "high_risk_count": churn[1],
-                "avg_probability": float(churn[2]) if churn[2] else 0,
-                "avg_satisfaction": float(churn[3]) if churn[3] else 0
-            }
+            if churn:
+                observations["churn_status"] = {
+                    "total_analyzed": churn[0],
+                    "high_risk_count": churn[1],
+                    "avg_probability": float(churn[2]) if churn[2] else 0,
+                    "avg_satisfaction": float(churn[3]) if churn[3] else 0
+                }
+        except Exception as e:
+            logger.warning(f"Failed to observe churn: {e}")
+            observations["churn_status"] = {}
 
         # Top declining categories
-        categories = conn.execute(text("""
-            SELECT p.product_category_name, COUNT(*) as order_count
-            FROM order_items oi
-            JOIN products p ON p.product_id = oi.product_id
-            JOIN orders o ON o.order_id = oi.order_id
-            WHERE p.product_category_name IS NOT NULL
-              AND o.order_status = 'delivered'
-            GROUP BY p.product_category_name
-            ORDER BY order_count DESC
-            LIMIT 10
-        """)).fetchall()
+        try:
+            categories = conn.execute(text("""
+                SELECT p.product_category_name, COUNT(*) as order_count
+                FROM order_items oi
+                JOIN products p ON p.product_id = oi.product_id
+                JOIN orders o ON o.order_id = oi.order_id
+                WHERE p.product_category_name IS NOT NULL
+                  AND o.order_status = 'delivered'
+                GROUP BY p.product_category_name
+                ORDER BY order_count DESC
+                LIMIT 10
+            """)).fetchall()
 
-        observations["top_categories"] = [
-            {"name": r[0], "orders": r[1]} for r in categories
-        ]
+            observations["top_categories"] = [
+                {"name": r[0], "orders": r[1]} for r in categories
+            ]
+        except Exception as e:
+            logger.warning(f"Failed to observe categories: {e}")
+            observations["top_categories"] = []
 
         # Review anomalies
-        reviews = conn.execute(text("""
-            SELECT ROUND(AVG(review_score)::numeric, 2) as avg_score,
-                   COUNT(*) as total_reviews,
-                   SUM(CASE WHEN review_score <= 2 THEN 1 ELSE 0 END) as negative_reviews
-            FROM reviews
-        """)).fetchone()
+        try:
+            reviews = conn.execute(text("""
+                SELECT ROUND(AVG(review_score)::numeric, 2) as avg_score,
+                       COUNT(*) as total_reviews,
+                       SUM(CASE WHEN review_score <= 2 THEN 1 ELSE 0 END) as negative_reviews
+                FROM reviews
+            """)).fetchone()
 
-        if reviews:
-            observations["review_health"] = {
-                "avg_score": float(reviews[0]) if reviews[0] else 0,
-                "total": reviews[1],
-                "negative_count": reviews[2],
-                "negative_pct": round(reviews[2] / max(reviews[1], 1) * 100, 1)
-            }
+            if reviews:
+                observations["review_health"] = {
+                    "avg_score": float(reviews[0]) if reviews[0] else 0,
+                    "total": reviews[1],
+                    "negative_count": reviews[2],
+                    "negative_pct": round(reviews[2] / max(reviews[1], 1) * 100, 1)
+                }
+        except Exception as e:
+            logger.warning(f"Failed to observe reviews: {e}")
+            observations["review_health"] = {}
 
     return observations
 

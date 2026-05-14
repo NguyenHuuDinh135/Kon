@@ -4,9 +4,9 @@ export default function ProductsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Inventory Management</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Quản lý kho hàng</h2>
         <p className="text-muted-foreground">
-          Manage your product catalog, prices, and stock levels.
+          Quản lý danh mục sản phẩm, giá cả và tồn kho.
         </p>
       </div>
 

@@ -12,7 +12,9 @@ export default async function ClusteringPage() {
   } catch {}
 
   const kmMetric = metrics.find((m: any) => m.model_name === "KMeans Clustering");
-  const params = kmMetric?.parameters ? JSON.parse(kmMetric.parameters) : {};
+  const params = typeof kmMetric?.parameters === 'string' 
+    ? JSON.parse(kmMetric.parameters) 
+    : (kmMetric?.parameters || {});
 
   return (
     <ClusteringContent

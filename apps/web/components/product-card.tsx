@@ -3,9 +3,10 @@
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardFooter, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { Card, CardContent, CardFooter } from "@workspace/ui/components/card";
 import { Badge } from "@workspace/ui/components/badge";
 import { cn } from "@workspace/ui/lib/utils";
+import { getProductImage, formatCategory } from "@/lib/product-images";
 
 interface ProductCardProps {
   product: {
@@ -14,7 +15,7 @@ interface ProductCardProps {
     price?: number;
     category?: string;
     image?: string;
-    quantityPerUnit?: string;
+    weight?: number;
   };
   className?: string;
 }
@@ -22,60 +23,75 @@ interface ProductCardProps {
 export function ProductCard({ product, className }: ProductCardProps) {
   const { addItem } = useCart();
 
+  const productImage =
+    product.image ||
+    getProductImage(String(product.id), product.category || "_default");
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     addItem({
       id: product.id,
       name: product.name,
       price: product.price ?? 0,
-      image: product.image,
+      image: productImage,
     });
   };
 
   return (
-    <Card className={cn("overflow-hidden group border-muted hover:border-primary/50 transition-all duration-300", className)}>
-      <div className="aspect-square relative overflow-hidden bg-muted flex items-center justify-center">
-        {product.image ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <span className="text-4xl opacity-20">📦</span>
-        )}
+    <Card
+      className={cn(
+        "group overflow-hidden border-border/60 bg-card transition-all duration-300 hover:border-primary/40 hover:shadow-lg",
+        className
+      )}
+    >
+      <div className="relative aspect-square overflow-hidden bg-muted">
+        <img
+          src={productImage}
+          alt={product.name}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+        />
         <Button
           size="icon"
           variant="secondary"
-          className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+          className="absolute bottom-3 right-3 opacity-0 shadow-md transition-opacity duration-200 group-hover:opacity-100"
           onClick={handleAddToCart}
         >
           <ShoppingCart className="h-4 w-4" />
         </Button>
       </div>
-      <CardHeader className="p-4">
-        <div className="flex justify-between items-start">
-          {product.category ? (
-            <Badge variant="secondary" className="mb-2 text-[10px] uppercase tracking-wider">
-              {product.category}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-[10px]">
-              ID: {product.id}
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          {product.category && (
+            <Badge variant="secondary" className="shrink-0 text-[10px] uppercase tracking-wider">
+              {formatCategory(product.category)}
             </Badge>
           )}
           {product.price != null && (
-            <span className="font-bold text-lg">${product.price.toFixed(2)}</span>
+            <span className="text-base font-bold text-foreground">
+              ${product.price.toFixed(2)}
+            </span>
           )}
         </div>
-        <CardTitle className="text-base line-clamp-1">{product.name}</CardTitle>
-        {product.quantityPerUnit && (
-          <p className="text-xs text-muted-foreground mt-1">{product.quantityPerUnit}</p>
+        <h3 className="mt-2 line-clamp-2 text-sm font-medium text-foreground">
+          {product.name}
+        </h3>
+        {product.weight != null && product.weight > 0 && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {product.weight >= 1000
+              ? `${(product.weight / 1000).toFixed(1)} kg`
+              : `${product.weight} g`}
+          </p>
         )}
-      </CardHeader>
+      </CardContent>
       <CardFooter className="p-4 pt-0">
-        <Button variant="outline" className="w-full" onClick={handleAddToCart}>
-          Add to Cart
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleAddToCart}
+        >
+          <ShoppingCart className="mr-2 h-4 w-4" />
+          Thêm vào giỏ
         </Button>
       </CardFooter>
     </Card>

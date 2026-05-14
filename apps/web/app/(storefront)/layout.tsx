@@ -5,6 +5,7 @@ import { Button } from "@workspace/ui/components/button";
 import { CartProvider } from "@/context/cart-context";
 import { CartSheet } from "@/components/cart-sheet";
 import { AIChatWidget } from "@/components/ai-chat-widget";
+import { NavUser } from "@/components/nav-user";
 
 export default function StorefrontLayout({
   children,
@@ -21,9 +22,11 @@ export default function StorefrontLayout({
                 <span className="text-2xl font-bold tracking-tighter text-primary">KON STORE</span>
               </Link>
               <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-                <Link href="/products" className="transition-colors hover:text-primary">Products</Link>
-                <Link href="/categories" className="transition-colors hover:text-primary">Categories</Link>
-                <Link href="/deals" className="transition-colors hover:text-primary">Deals</Link>
+                <Link href="/products" className="transition-colors hover:text-primary">Sản phẩm</Link>
+                <Link href="/categories" className="transition-colors hover:text-primary">Danh mục</Link>
+                <Link href="/deals" className="transition-colors hover:text-primary">Ưu đãi</Link>
+                <Link href="/track-order" className="transition-colors hover:text-primary">Theo dõi đơn</Link>
+                <Link href="/register" className="transition-colors hover:text-primary font-medium text-primary">Đăng ký</Link>
               </nav>
             </div>
             <div className="flex items-center gap-4">
@@ -31,16 +34,12 @@ export default function StorefrontLayout({
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <input
                   type="search"
-                  placeholder="Search products..."
+                  placeholder="Tìm kiếm sản phẩm..."
                   className="h-9 w-64 rounded-md border border-input bg-muted px-9 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
               <ModeToggle />
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="/login">
-                  <User className="h-5 w-5" />
-                </Link>
-              </Button>
+              <NavUser />
               <CartSheet />
             </div>
           </div>

@@ -10,23 +10,26 @@ import {
 import { motion } from "motion/react";
 import { MagicCard } from "@workspace/ui/components/magic-card";
 
-const COLORS = ["#14b8a6", "#06b6d4", "#f59e0b", "#ef4444"];
+const COLORS = [
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+];
 
 const clusterLabels = [
-  "VIP Customers",
-  "Loyal Customers",
-  "At Risk",
-  "Hibernating"
+  "Khách VIP",
+  "Khách trung thành",
+  "Có nguy cơ",
+  "Ngủ đông",
+  "Khách mới"
 ];
 
 const chartConfig = {
   count: {
     label: "Customers",
   },
-  cluster0: { label: "VIP", color: COLORS[0] },
-  cluster1: { label: "Loyal", color: COLORS[1] },
-  cluster2: { label: "At Risk", color: COLORS[2] },
-  cluster3: { label: "Hibernating", color: COLORS[3] },
 } satisfies ChartConfig;
 
 interface SegmentationChartProps {
@@ -52,16 +55,15 @@ export function SegmentationChart({ data }: SegmentationChartProps) {
       <MagicCard
         className="h-full rounded-2xl"
         gradientSize={250}
-        gradientColor="#1a1a2e"
-        gradientFrom="#14b8a6"
-        gradientTo="#06b6d4"
+        gradientColor="var(--color-primary)"
+        gradientOpacity={0.05}
       >
         <div className="flex h-full flex-col p-6">
           {/* Header */}
           <div>
-            <h3 className="text-lg font-semibold text-white">Segmentation</h3>
-            <p className="mt-1 text-sm text-zinc-500">
-              K-Means RFM clustering
+            <h3 className="text-lg font-semibold">Phân khúc khách hàng</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Phân cụm K-Means RFM
             </p>
           </div>
 
@@ -77,7 +79,7 @@ export function SegmentationChart({ data }: SegmentationChartProps) {
                   content={
                     <ChartTooltipContent
                       hideLabel
-                      className="rounded-xl border-zinc-800 bg-zinc-900/95 backdrop-blur-sm"
+                      className="rounded-xl border bg-background/95 backdrop-blur-sm"
                     />
                   }
                 />
@@ -88,7 +90,7 @@ export function SegmentationChart({ data }: SegmentationChartProps) {
                   innerRadius={55}
                   outerRadius={80}
                   strokeWidth={2}
-                  stroke="rgba(9,9,11,0.8)"
+                  stroke="var(--color-background)"
                 >
                   {chartData.map((entry, index) => (
                     <Cell
@@ -110,16 +112,16 @@ export function SegmentationChart({ data }: SegmentationChartProps) {
                             <tspan
                               x={viewBox.cx}
                               y={(viewBox.cy || 0) - 8}
-                              className="fill-white text-2xl font-bold"
+                              className="fill-foreground text-2xl font-bold"
                             >
                               {totalCustomers}
                             </tspan>
                             <tspan
                               x={viewBox.cx}
                               y={(viewBox.cy || 0) + 12}
-                              className="fill-zinc-500 text-xs"
+                              className="fill-muted-foreground text-xs"
                             >
-                              Total
+                              Tổng
                             </tspan>
                           </text>
                         );
@@ -140,13 +142,12 @@ export function SegmentationChart({ data }: SegmentationChartProps) {
                   className="h-2.5 w-2.5 rounded-full"
                   style={{
                     backgroundColor: item.fill,
-                    boxShadow: `0 0 6px ${item.fill}40`,
                   }}
                 />
-                <span className="truncate text-xs text-zinc-400">
+                <span className="truncate text-xs text-muted-foreground">
                   {item.name}
                 </span>
-                <span className="ml-auto text-xs font-medium text-zinc-300">
+                <span className="ml-auto text-xs font-medium">
                   {item.value}
                 </span>
               </div>

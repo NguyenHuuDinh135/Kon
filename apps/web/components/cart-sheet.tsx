@@ -36,7 +36,7 @@ export function CartSheet() {
         <SheetHeader className="px-4 py-6 border-b">
           <SheetTitle className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
-            Your Cart ({totalItems})
+            Giỏ hàng ({totalItems})
           </SheetTitle>
         </SheetHeader>
 
@@ -44,9 +44,9 @@ export function CartSheet() {
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
               <ShoppingBag className="h-12 w-12 mb-4 opacity-20" />
-              <p>Your cart is empty</p>
+              <p>Giỏ hàng trống</p>
               <Button variant="link" asChild className="mt-2">
-                <Link href="/products">Browse products</Link>
+                <Link href="/products">Xem sản phẩm</Link>
               </Button>
             </div>
           ) : (
@@ -102,11 +102,11 @@ export function CartSheet() {
         {items.length > 0 && (
           <SheetFooter className="p-4 border-t block">
             <div className="flex items-center justify-between mb-4">
-              <span className="font-medium text-base">Total</span>
+              <span className="font-medium text-base">Tổng cộng</span>
               <span className="font-bold text-lg">${totalPrice.toFixed(2)}</span>
             </div>
             <Button className="w-full" size="lg" asChild onClick={() => setOpen(false)}>
-              <Link href="/checkout">Checkout</Link>
+              <Link href="/checkout">Thanh toán</Link>
             </Button>
           </SheetFooter>
         )}

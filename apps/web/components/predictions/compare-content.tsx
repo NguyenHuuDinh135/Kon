@@ -27,9 +27,9 @@ const clusterNames: Record<number, string> = {
 };
 
 const modelColors: Record<string, string> = {
-  "Decision Tree": "#14b8a6",
-  "Logistic Regression": "#f97316",
-  "KMeans Clustering": "#a855f7",
+  "Decision Tree": "var(--color-chart-1)",
+  "Logistic Regression": "var(--color-chart-2)",
+  "KMeans Clustering": "var(--color-chart-3)",
 };
 
 export function CompareContent({ data, metrics }: CompareContentProps) {
@@ -54,9 +54,9 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
   })();
 
   const getRiskBarColor = (prob: number) => {
-    if (prob > 0.7) return "bg-red-500";
-    if (prob > 0.3) return "bg-amber-500";
-    return "bg-emerald-500";
+    if (prob > 0.7) return "bg-destructive";
+    if (prob > 0.3) return "bg-warning"; // Assuming warning is available or use chart-4/5
+    return "bg-primary";
   };
 
   return (
@@ -66,18 +66,18 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
         <motion.h2
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-bold tracking-tight text-white"
+          className="text-3xl font-bold tracking-tight text-foreground"
         >
-          So sanh 3 Mo hinh
+          Compare 3 Models
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-zinc-400"
+          className="text-muted-foreground"
         >
-          Ket qua du doan song song tu Decision Tree, K-Means Clustering, va
-          Logistic Regression.
+          Side-by-side comparison of Decision Tree, K-Means Clustering, and
+          Logistic Regression results.
         </motion.p>
       </div>
 
@@ -87,26 +87,26 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="rounded-xl border border-zinc-800/50 bg-zinc-900/50 p-6 backdrop-blur-xl"
+          className="rounded-xl border bg-card/50 p-6 backdrop-blur-xl"
         >
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-300">
-            Performance Comparison
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Performance
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
                 <PolarGrid
-                  stroke="rgba(63,63,70,0.4)"
+                  stroke="var(--color-border)"
                   gridType="polygon"
                 />
                 <PolarAngleAxis
                   dataKey="metric"
-                  tick={{ fill: "#a1a1aa", fontSize: 12 }}
+                  tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
                 />
                 <PolarRadiusAxis
                   angle={30}
                   domain={[0, 100]}
-                  tick={{ fill: "#71717a", fontSize: 10 }}
+                  tick={{ fill: "var(--color-muted-foreground)", fontSize: 10 }}
                   axisLine={false}
                 />
                 {metrics.map((m: any) => (
@@ -114,14 +114,14 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
                     key={m.model_name}
                     name={m.model_name}
                     dataKey={m.model_name}
-                    stroke={modelColors[m.model_name] || "#6b7280"}
-                    fill={modelColors[m.model_name] || "#6b7280"}
+                    stroke={modelColors[m.model_name] || "var(--color-muted-foreground)"}
+                    fill={modelColors[m.model_name] || "var(--color-muted-foreground)"}
                     fillOpacity={0.15}
                     strokeWidth={2}
                   />
                 ))}
                 <Legend
-                  wrapperStyle={{ color: "#a1a1aa", fontSize: 12 }}
+                  wrapperStyle={{ color: "var(--color-muted-foreground)", fontSize: 12 }}
                 />
               </RadarChart>
             </ResponsiveContainer>
@@ -134,39 +134,39 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="overflow-hidden rounded-xl border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-xl"
+        className="overflow-hidden rounded-xl border bg-card/50 backdrop-blur-xl"
       >
-        <div className="border-b border-zinc-800/50 p-4">
-          <h3 className="text-sm font-semibold text-zinc-300">
+        <div className="border-b p-4">
+          <h3 className="text-sm font-semibold text-foreground/80">
             Performance Metrics
           </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-zinc-800/50 bg-zinc-900/30">
+            <thead className="border-b bg-muted/30">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Model
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Accuracy
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Precision
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Recall
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   F1 Score
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/30">
+            <tbody className="divide-y divide-border/30">
               {metrics.map((m: any) => (
                 <tr
                   key={m.model_name}
-                  className="transition-colors hover:bg-zinc-800/20"
+                  className="transition-colors hover:bg-muted/20"
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -174,30 +174,30 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
                         className="h-2.5 w-2.5 rounded-full"
                         style={{
                           backgroundColor:
-                            modelColors[m.model_name] || "#6b7280",
+                            modelColors[m.model_name] || "var(--color-muted-foreground)",
                         }}
                       />
-                      <span className="font-medium text-zinc-200">
+                      <span className="font-medium text-foreground">
                         {m.model_name}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-zinc-300">
+                  <td className="px-4 py-3 text-foreground/80">
                     {m.accuracy
                       ? `${(m.accuracy * 100).toFixed(1)}%`
                       : "-"}
                   </td>
-                  <td className="px-4 py-3 text-zinc-300">
+                  <td className="px-4 py-3 text-foreground/80">
                     {m.precision_score
                       ? `${(m.precision_score * 100).toFixed(1)}%`
                       : "-"}
                   </td>
-                  <td className="px-4 py-3 text-zinc-300">
+                  <td className="px-4 py-3 text-foreground/80">
                     {m.recall
                       ? `${(m.recall * 100).toFixed(1)}%`
                       : "-"}
                   </td>
-                  <td className="px-4 py-3 text-zinc-300">
+                  <td className="px-4 py-3 text-foreground/80">
                     {m.f1_score
                       ? `${(m.f1_score * 100).toFixed(1)}%`
                       : "-"}
@@ -214,59 +214,59 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="overflow-hidden rounded-xl border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-xl"
+        className="overflow-hidden rounded-xl border bg-card/50 backdrop-blur-xl"
       >
-        <div className="border-b border-zinc-800/50 p-4">
-          <h3 className="text-sm font-semibold text-zinc-300">
-            Du doan song song ({data.total || 0} khach hang)
+        <div className="border-b p-4">
+          <h3 className="text-sm font-semibold text-foreground/80">
+            Dự đoán song song ({data.total || 0} khách hàng)
           </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-zinc-800/50 bg-zinc-900/30">
+            <thead className="border-b bg-muted/30">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   ID
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
-                  Tuoi
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Tenure
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
-                  Thu nhap
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Satisfaction
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
-                  Chi tieu
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Orders
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Decision Tree
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   K-Means
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Churn Prob
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/30">
+            <tbody className="divide-y divide-border/30">
               {(data.customers || []).slice(0, 50).map((row: any) => (
                 <tr
                   key={row.CustomerID}
-                  className="transition-colors hover:bg-zinc-800/20"
+                  className="transition-colors hover:bg-muted/20"
                 >
-                  <td className="px-4 py-3 text-zinc-300">{row.CustomerID}</td>
-                  <td className="px-4 py-3 text-zinc-300">{row.Age}</td>
-                  <td className="px-4 py-3 text-zinc-300">{row.income}k$</td>
-                  <td className="px-4 py-3 text-zinc-300">
-                    {row.spending_score}
+                  <td className="px-4 py-3 text-foreground/80">{row.CustomerID}</td>
+                  <td className="px-4 py-3 text-foreground/80">{row.Tenure}</td>
+                  <td className="px-4 py-3 text-foreground/80">{row.SatisfactionScore}</td>
+                  <td className="px-4 py-3 text-foreground/80">
+                    {row.OrderCount}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/20 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
+                    <span className="inline-block rounded-full border border-primary/30 bg-primary/20 px-2.5 py-0.5 text-xs font-medium text-primary">
                       {row.DT_Label || "-"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-block rounded-full border border-violet-500/30 bg-violet-500/20 px-2.5 py-0.5 text-xs font-medium text-violet-300">
+                    <span className="inline-block rounded-full border border-chart-3/30 bg-chart-3/20 px-2.5 py-0.5 text-xs font-medium text-chart-3">
                       {row.cluster_label ||
                         clusterNames[row.Cluster] ||
                         "-"}
@@ -275,7 +275,7 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
                   <td className="px-4 py-3">
                     {row.Churn_Probability != null ? (
                       <div className="flex items-center gap-2">
-                        <div className="h-2 w-14 overflow-hidden rounded-full bg-zinc-800/50">
+                        <div className="h-2 w-14 overflow-hidden rounded-full bg-muted/50">
                           <div
                             className={`h-full rounded-full ${getRiskBarColor(row.Churn_Probability)}`}
                             style={{
@@ -283,12 +283,12 @@ export function CompareContent({ data, metrics }: CompareContentProps) {
                             }}
                           />
                         </div>
-                        <span className="text-zinc-300">
+                        <span className="text-foreground/80">
                           {(row.Churn_Probability * 100).toFixed(0)}%
                         </span>
                       </div>
                     ) : (
-                      <span className="text-zinc-600">-</span>
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </td>
                 </tr>

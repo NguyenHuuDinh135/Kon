@@ -10,20 +10,32 @@ import { SegmentationChart } from "@/components/dashboard/segmentation-chart";
 import { TopProducts } from "@/components/dashboard/top-products";
 import { AiAgentCta } from "@/components/dashboard/ai-agent-cta";
 import { AIInsightsCard } from "@/components/dashboard/ai-insights-card";
-import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { PageHero } from "@/components/shared/page-hero";
 
 export default async function DashboardPage() {
-  const [kpis, revenueData, segmentationData, topProducts] = await Promise.all([
+  const defaults = [
+    { total_customers: 0, total_orders: 0, total_revenue: 0, churn_alerts_count: 0, avg_churn_risk: 0 },
+    [],
+    [],
+    []
+  ];
+  const [kpis, revenueData, segmentationData, topProducts] = await Promise.allSettled([
     fetchDashboardKPIs(),
     fetchRevenueOverTime(),
     fetchSegmentationStats(),
     fetchTopProducts()
-  ]);
+  ]).then(results => results.map((r, i) =>
+    r.status === 'fulfilled' ? r.value : defaults[i]
+  ));
 
   return (
     <div className="min-h-screen space-y-8 pb-12">
       {/* Hero Section with mesh gradient */}
-      <DashboardHero />
+      <PageHero
+        subtitle="Trung tâm điều khiển"
+        title="Chào mừng trở lại."
+        description="Trí tuệ tự động và phân tích ERP thời gian thực trong tầm tay bạn."
+      />
 
       {/* KPI Stats - Glassmorphic cards with number tickers */}
       <KPIStats data={kpis} />

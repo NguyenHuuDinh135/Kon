@@ -21,5 +21,18 @@
       "Write",
       "Edit"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$FILE_PATH\" in *.ts|*.tsx|*.js|*.jsx|*.json|*.css|*.md) npx prettier --write \"$FILE_PATH\" 2>/dev/null ;; *.py) ruff format \"$FILE_PATH\" 2>/dev/null && ruff check --fix \"$FILE_PATH\" 2>/dev/null ;; esac; true"
+          }
+        ]
+      }
+    ]
   }
 }

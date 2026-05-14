@@ -13,7 +13,7 @@ from unittest.mock import patch, MagicMock
 import pandas as pd
 from fastapi.testclient import TestClient
 
-from apps.api.main import app
+from main import app
 from auth import get_current_user, require_admin
 
 

@@ -71,7 +71,7 @@ class Notification(NotificationBase):
 class CustomerBase(BaseModel):
     customer_id: str
     customer_unique_id: Optional[str] = None
-    customer_zip_code_prefix: Optional[str] = None
+    customer_zip_code_prefix: Optional[Any] = None
     customer_city: Optional[str] = None
     customer_state: Optional[str] = None
 
@@ -159,7 +159,7 @@ class Product(ProductBase):
 
 class SellerBase(BaseModel):
     seller_id: str
-    seller_zip_code_prefix: Optional[str] = None
+    seller_zip_code_prefix: Optional[Any] = None
     seller_city: Optional[str] = None
     seller_state: Optional[str] = None
 
@@ -284,6 +284,8 @@ class DashboardKPIs(BaseModel):
     total_revenue: float
     churn_rate: Optional[float] = None
     avg_satisfaction: Optional[float] = None
+    churn_alerts_count: Optional[int] = None
+    avg_churn_risk: Optional[float] = None
     revenue_trend: Optional[float] = None
     orders_trend: Optional[float] = None
     customers_trend: Optional[float] = None

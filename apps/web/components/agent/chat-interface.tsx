@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { runAgent } from "@/lib/api";
+import { streamAgent } from "@/lib/api";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
-import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { TypingAnimation } from "@workspace/ui/components/typing-animation";
 import { ShimmerButton } from "@workspace/ui/components/shimmer-button";
 import { Send, User, Bot, Sparkles } from "lucide-react";
@@ -13,21 +12,23 @@ import { motion, AnimatePresence } from "motion/react";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  status?: string;
 }
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hello! I am Kon AI, your business intelligence assistant. I can analyze customers, revenue trends, churn risks, and suggest campaigns. How can I help?" }
+    { role: "assistant", content: "Xin chào! Tôi là Kon AI, trợ lý phân tích kinh doanh của bạn. Tôi có thể phân tích khách hàng, xu hướng doanh thu, rủi ro churn và đề xuất chiến dịch. Tôi có thể giúp gì?" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [streamStatus, setStreamStatus] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, streamStatus]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -36,28 +37,64 @@ export function ChatInterface() {
     setInput("");
     setMessages(prev => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
+    setStreamStatus("Đang kết nối...");
+
+    let finalContent = "";
 
     try {
-      const response = await runAgent(userMessage);
-      // Backend returns { result: [...] } or { result: "string" }
-      let content = "Agent processed the request.";
-      if (typeof response.result === "string") {
-        content = response.result;
-      } else if (Array.isArray(response.result)) {
-        content = response.result.map((r: any) => r.text).join("\n");
+      await streamAgent(userMessage, (event) => {
+        switch (event.type) {
+          case "status":
+            setStreamStatus(event.content);
+            break;
+          case "tool_call":
+            setStreamStatus(`🔧 ${event.content}`);
+            break;
+          case "tool_result":
+            setStreamStatus("Đang phân tích kết quả...");
+            break;
+          case "token":
+            finalContent = event.content;
+            setMessages(prev => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant" && last?.status === "streaming") {
+                return [...prev.slice(0, -1), { role: "assistant", content: finalContent, status: "streaming" }];
+              }
+              return [...prev, { role: "assistant", content: finalContent, status: "streaming" }];
+            });
+            setStreamStatus("");
+            break;
+          case "error":
+            finalContent = `Lỗi: ${event.content}`;
+            break;
+        }
+      });
+
+      if (finalContent) {
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && last?.status === "streaming") {
+            return [...prev.slice(0, -1), { role: "assistant", content: finalContent }];
+          }
+          return [...prev, { role: "assistant", content: finalContent }];
+        });
+      } else {
+        setMessages(prev => [...prev, { role: "assistant", content: "Đã xử lý yêu cầu nhưng không có phản hồi." }]);
       }
-      
-      setMessages(prev => [...prev, { role: "assistant", content }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I encountered an error processing your request." }]);
+    } catch {
+      setMessages(prev => [...prev, { role: "assistant", content: "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu." }]);
     } finally {
       setIsLoading(false);
+      setStreamStatus("");
     }
   };
 
   return (
     <div className="flex flex-col h-full bg-background/50 backdrop-blur-sm">
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <div 
+        className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-muted-foreground/20" 
+        ref={scrollRef}
+      >
         <div className="space-y-4 max-w-3xl mx-auto">
           <AnimatePresence mode="popLayout">
             {messages.map((m, i) => (
@@ -76,7 +113,7 @@ export function ChatInterface() {
                 <div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${
                   m.role === "user" 
                     ? "bg-primary text-primary-foreground rounded-tr-none" 
-                    : "bg-muted/80 border rounded-tl-none"
+                    : "bg-muted border rounded-tl-none"
                 }`}>
                   {m.role === "assistant" && i === messages.length - 1 && isLoading ? (
                     <TypingAnimation duration={50}>Thinking...</TypingAnimation>
@@ -87,7 +124,8 @@ export function ChatInterface() {
               </motion.div>
             ))}
           </AnimatePresence>
-          {isLoading && (
+...
+          {isLoading && streamStatus && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -97,21 +135,17 @@ export function ChatInterface() {
                 <Bot className="size-4 text-primary animate-pulse" />
               </div>
               <div className="bg-muted/80 border px-4 py-2 rounded-2xl rounded-tl-none">
-                <div className="flex gap-1 h-4 items-center">
-                  <div className="size-1.5 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
-                  <div className="size-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                  <div className="size-1.5 bg-primary/80 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-                </div>
+                <p className="text-xs text-muted-foreground">{streamStatus}</p>
               </div>
             </motion.div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="p-4 border-t bg-background/80">
         <div className="max-w-3xl mx-auto flex gap-2">
           <Input 
-            placeholder="Ask Kon AI... (e.g., 'Who are our highest churn risk customers?')"
+            placeholder="Hỏi Kon AI... (vd: 'Khách hàng nào có nguy cơ rời bỏ cao nhất?')"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
@@ -125,17 +159,17 @@ export function ChatInterface() {
             background="var(--primary)"
           >
             <Send className="size-4 mr-2" />
-            Send
+            Gửi
           </ShimmerButton>
         </div>
         <div className="max-w-3xl mx-auto mt-2 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
            {[
-             "Who are our highest churn risk customers?",
-             "Show me revenue insights and trends",
-             "Suggest a retention campaign for at-risk customers",
-             "Find customers similar to: high spenders who haven't ordered recently",
-             "What's our customer satisfaction looking like?",
-             "Recommend products for customer CUST_001"
+             "Khách hàng nào có nguy cơ rời bỏ cao nhất?",
+             "Phân tích xu hướng doanh thu",
+             "Đề xuất chiến dịch giữ chân khách hàng có nguy cơ",
+             "Tìm khách hàng tương tự: chi tiêu cao nhưng lâu không đặt hàng",
+             "Mức độ hài lòng của khách hàng như thế nào?",
+             "Đề xuất sản phẩm cho khách hàng CUST_001"
            ].map((suggestion) => (
              <button
                 key={suggestion}

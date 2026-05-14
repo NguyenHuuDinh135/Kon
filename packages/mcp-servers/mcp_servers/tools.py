@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from sqlalchemy import text
 from langchain_core.tools import tool
@@ -17,6 +18,13 @@ def query_database(query: str) -> str:
     query_upper = query.strip().upper()
     if not query_upper.startswith("SELECT"):
         return "Error: Only SELECT queries are allowed."
+    if len(query) > 2000:
+        return "Error: Query exceeds maximum length of 2000 characters."
+    if ";" in query:
+        return "Error: Multi-statement queries are not allowed."
+    dangerous_keywords = r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|GRANT)\b"
+    if re.search(dangerous_keywords, query, re.IGNORECASE):
+        return "Error: Query contains forbidden keywords. Only SELECT queries are allowed."
     try:
         with engine.connect() as conn:
             result = conn.execute(text(query))

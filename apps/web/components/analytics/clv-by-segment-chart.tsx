@@ -1,75 +1,45 @@
 "use client";
 
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
+  ChartTooltipContent
 } from "@workspace/ui/components/chart";
 import { motion } from "motion/react";
-import { DollarSign } from "lucide-react";
 
 const chartConfig = {
   clv: {
-    label: "Avg CLV",
-    color: "#14b8a6",
+    label: "CLV",
+    color: "var(--color-primary)",
   },
 } satisfies ChartConfig;
 
 interface CLVBySegmentChartProps {
-  data: any[];
+  data: { cluster_label: string; avg_clv: number }[];
 }
 
 export function CLVBySegmentChart({ data }: CLVBySegmentChartProps) {
-  const segmentMap: Record<string, { total: number; count: number }> = {};
-
-  if (data && data.length > 0) {
-    data.forEach((item: any) => {
-      const segment = item.segment || item.cluster_label || "Unknown";
-      if (!segmentMap[segment]) {
-        segmentMap[segment] = { total: 0, count: 0 };
-      }
-      segmentMap[segment].total += item.clv || item.CLV || 0;
-      segmentMap[segment].count += 1;
-    });
-  }
-
-  const hasRealData = Object.keys(segmentMap).length > 0;
-
-  const chartData = hasRealData
-    ? Object.entries(segmentMap)
-        .map(([segment, { total, count }]) => ({
-          segment,
-          clv: Math.round(total / count),
-        }))
-        .sort((a, b) => b.clv - a.clv)
-    : [
-        { segment: "VIP", clv: 2450 },
-        { segment: "Loyal", clv: 1820 },
-        { segment: "At Risk", clv: 980 },
-        { segment: "Casual", clv: 420 },
-      ];
+  // Map data to expected format if needed
+  const chartData = data.map(item => ({
+    segment: item.cluster_label || "Unknown",
+    clv: item.avg_clv || 0,
+  }));
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
-      className="h-full overflow-hidden rounded-2xl border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-xl"
+      transition={{ duration: 0.5, delay: 0.4 }}
+      className="h-full overflow-hidden rounded-2xl border bg-card/50 backdrop-blur-xl"
     >
       {/* Header */}
-      <div className="flex items-start justify-between border-b border-zinc-800/50 p-6">
-        <div>
-          <h3 className="text-lg font-semibold text-white">CLV by Segment</h3>
-          <p className="mt-1 text-sm text-zinc-500">
-            Average lifetime value per customer segment
-          </p>
-        </div>
-        <div className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
-          <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
-          <span className="text-xs font-medium text-emerald-400">CLV</span>
-        </div>
+      <div className="border-b p-6">
+        <h3 className="text-lg font-semibold">CLV theo phân khúc</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Giá trị vòng đời trung bình theo cụm RFM
+        </p>
       </div>
 
       {/* Chart */}
@@ -77,43 +47,43 @@ export function CLVBySegmentChart({ data }: CLVBySegmentChartProps) {
         <ChartContainer config={chartConfig} className="h-[280px] w-full">
           <BarChart
             data={chartData}
-            layout="vertical"
-            margin={{ left: 0, right: 20, top: 12, bottom: 0 }}
+            margin={{ left: 0, right: 0, top: 12, bottom: 0 }}
           >
             <CartesianGrid
-              horizontal={false}
-              stroke="rgba(255,255,255,0.04)"
+              vertical={false}
+              stroke="var(--color-border)"
               strokeDasharray="none"
+              opacity={0.1}
             />
-            <YAxis
+            <XAxis
               dataKey="segment"
-              type="category"
               tickLine={false}
               axisLine={false}
               tickMargin={12}
-              tick={{ fill: "#a1a1aa", fontSize: 12 }}
-              width={70}
+              tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
             />
-            <XAxis
-              type="number"
+            <YAxis
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tick={{ fill: "#71717a", fontSize: 12 }}
-              tickFormatter={(value) => `$${value}`}
+              tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
+              tickFormatter={(value) => `$${value.toFixed(0)}`}
+              width={50}
             />
             <ChartTooltip
+              cursor={{ fill: "var(--color-muted)", opacity: 0.2 }}
               content={
                 <ChartTooltipContent
-                  className="rounded-xl border-zinc-800 bg-zinc-900/95 backdrop-blur-sm"
+                  hideLabel
+                  className="rounded-xl border bg-background/95 backdrop-blur-sm"
                 />
               }
             />
             <Bar
               dataKey="clv"
-              fill="#14b8a6"
-              radius={[0, 6, 6, 0]}
-              maxBarSize={28}
+              fill="var(--color-primary)"
+              radius={[6, 6, 0, 0]}
+              barSize={40}
             />
           </BarChart>
         </ChartContainer>

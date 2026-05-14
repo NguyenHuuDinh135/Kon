@@ -1,120 +1,108 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
-import { BrainCircuit, TrendingDown, TrendingUp, AlertTriangle, Sparkles } from "lucide-react";
 import { fetchAIInsights } from "@/lib/api";
-
-interface AIInsight {
-  observations_summary: {
-    revenue_change: number | null;
-    high_risk_customers: number | null;
-    avg_satisfaction: number | null;
-  };
-  insights_count: number;
-  actions_taken: string[];
-  created_at: string | null;
-}
+import { motion } from "motion/react";
+import { Sparkles, TrendingUp, UserMinus, Star } from "lucide-react";
 
 export function AIInsightsCard() {
-  const [insights, setInsights] = useState<AIInsight[]>([]);
+  const [insight, setInsight] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAIInsights()
-      .then((data) => setInsights(data.cycles || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    async function load() {
+      try {
+        const data = await fetchAIInsights();
+        if (data.cycles && data.cycles.length > 0) {
+          setInsight(data.cycles[0]);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
-
-  const latest = insights[0];
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-xl p-6 animate-pulse">
-        <div className="h-4 w-32 bg-zinc-800 rounded mb-4" />
-        <div className="h-3 w-full bg-zinc-800 rounded mb-2" />
-        <div className="h-3 w-2/3 bg-zinc-800 rounded" />
+      <div className="rounded-xl border bg-card/50 backdrop-blur-xl p-6 animate-pulse">
+        <div className="h-4 w-32 bg-muted rounded mb-4" />
+        <div className="h-3 w-full bg-muted rounded mb-2" />
+        <div className="h-3 w-2/3 bg-muted rounded" />
       </div>
     );
   }
 
-  if (!latest) {
+  if (!insight) {
     return (
-      <div className="rounded-xl border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-xl p-6">
+      <div className="rounded-xl border bg-card/50 backdrop-blur-xl p-6">
         <div className="flex items-center gap-2 mb-3">
-          <BrainCircuit className="h-5 w-5 text-teal-400" />
-          <h3 className="font-semibold text-sm">AI Insights</h3>
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold">Phân tích tự động</h3>
         </div>
-        <p className="text-sm text-zinc-400">No autonomous cycles have run yet. Insights will appear after the first ML training cycle.</p>
+        <p className="text-sm text-muted-foreground">Chưa có chu kỳ tự động nào chạy. Kết quả sẽ xuất hiện sau lần huấn luyện ML đầu tiên.</p>
       </div>
     );
   }
 
-  const revChange = latest.observations_summary?.revenue_change;
-  const highRisk = latest.observations_summary?.high_risk_customers;
-  const satisfaction = latest.observations_summary?.avg_satisfaction;
+  const obs = insight.observations || {};
+  const plans = insight.plans || [];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-xl p-6 space-y-4"
+    <div
+      className="rounded-xl border bg-card/50 backdrop-blur-xl p-6 space-y-4"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 p-1.5">
-            <Sparkles className="h-4 w-4 text-white" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20">
+            <Sparkles className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="font-semibold text-sm">AI Autonomous Insights</h3>
+          <h3 className="text-sm font-semibold">Phân tích mới nhất</h3>
         </div>
-        <span className="text-xs text-zinc-500">
-          {latest.created_at ? new Date(latest.created_at).toLocaleString() : "Recent"}
+        <span className="text-xs text-muted-foreground">
+          {insight.created_at ? new Date(insight.created_at).toLocaleTimeString() : "Vừa xong"}
         </span>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg bg-zinc-800/30 p-3 text-center">
-          {revChange !== null && revChange !== undefined ? (
+        <div className="rounded-lg bg-muted/30 p-3 text-center">
+          <TrendingUp className="h-4 w-4 mx-auto mb-1.5 text-chart-1" />
+          {obs.revenue_trend ? (
             <>
-              {revChange >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-emerald-400 mx-auto mb-1" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-400 mx-auto mb-1" />
-              )}
-              <p className={`text-sm font-bold ${revChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                {revChange > 0 ? "+" : ""}{revChange}%
-              </p>
-              <p className="text-xs text-zinc-500">Revenue</p>
+              <p className="text-sm font-bold">{obs.revenue_trend > 0 ? "+" : ""}{obs.revenue_trend}%</p>
+              <p className="text-[10px] text-muted-foreground">Doanh thu</p>
             </>
           ) : (
-            <p className="text-xs text-zinc-500">No data</p>
+            <p className="text-xs text-muted-foreground">No data</p>
           )}
         </div>
-
-        <div className="rounded-lg bg-zinc-800/30 p-3 text-center">
-          <AlertTriangle className={`h-4 w-4 mx-auto mb-1 ${(highRisk || 0) > 100 ? "text-red-400" : "text-amber-400"}`} />
-          <p className="text-sm font-bold">{highRisk || 0}</p>
-          <p className="text-xs text-zinc-500">At Risk</p>
+        <div className="rounded-lg bg-muted/30 p-3 text-center">
+          <UserMinus className="h-4 w-4 mx-auto mb-1.5 text-destructive" />
+          <p className="text-sm font-bold">{obs.churn_risk_customers || 0}</p>
+          <p className="text-xs text-muted-foreground">Có nguy cơ</p>
         </div>
-
-        <div className="rounded-lg bg-zinc-800/30 p-3 text-center">
-          <p className="text-sm font-bold text-teal-400">{satisfaction || "N/A"}/5</p>
-          <p className="text-xs text-zinc-500 mt-1">Satisfaction</p>
+        <div className="rounded-lg bg-muted/30 p-3 text-center">
+          <Star className="h-4 w-4 mx-auto mb-1.5 text-chart-3" />
+          <p className="text-sm font-bold">{obs.avg_satisfaction?.toFixed(1) || "N/A"}</p>
+          <p className="text-xs text-muted-foreground mt-1">Hài lòng</p>
         </div>
       </div>
 
-      {latest.actions_taken && latest.actions_taken.length > 0 && (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Hành động đã thực hiện</p>
+        </div>
         <div className="space-y-1.5">
-          <p className="text-xs text-zinc-400 uppercase tracking-wider">Actions Taken</p>
-          {latest.actions_taken.slice(0, 3).map((action, i) => (
-            <p key={i} className="text-xs text-zinc-300 flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-teal-400" />
-              {action}
+          {plans.slice(0, 3).map((p: string, i: number) => (
+            <p key={i} className="text-xs text-foreground/80 flex items-center gap-1.5">
+              <span className="h-1 w-1 rounded-full bg-primary shrink-0" />
+              <span className="truncate">{p}</span>
             </p>
           ))}
         </div>
-      )}
-    </motion.div>
+      </div>
+    </div>
   );
 }
