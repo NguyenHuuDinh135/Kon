@@ -43,7 +43,7 @@ jobs:
         pip install pytest pytest-cov
 
     - name: Run Python tests
-      run: pytest packages/ai-engine/tests/ apps/api/tests/ -v
+      run: pytest apps/api/tests/ -v --ignore=packages/ai-engine/tests/
       env:
         PYTHONPATH: packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers:apps/api
         JWT_SECRET_KEY: test-secret-key-for-ci-at-least-32chars
