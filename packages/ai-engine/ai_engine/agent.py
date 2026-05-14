@@ -1,12 +1,11 @@
 """
 Kon AI Agent — Autonomous Business Intelligence Assistant
 =========================================================
-Uses LangGraph + Gemini to answer business questions with real data.
-Has access to 6 specialized tools for e-commerce analytics.
+Uses LangGraph + AWS Bedrock (Claude Haiku) as primary LLM with Ollama fallback.
+Has access to 7 specialized tools for e-commerce analytics.
 """
 import os
 from typing import Annotated, TypedDict, Sequence
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
@@ -59,35 +58,71 @@ class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], lambda x, y: x + y]
 
 
+def _create_bedrock_model():
+    """Attempt to create a Bedrock model. Returns the model or raises on failure."""
+    from langchain_aws import ChatBedrockConverse
+
+    region = os.getenv("AWS_REGION", "us-west-2")
+    model_id = os.getenv("BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001")
+
+    model = ChatBedrockConverse(
+        model=model_id,
+        region_name=region,
+        temperature=0.3,
+        max_tokens=2048,
+    )
+    return model, model_id, region
+
+
+def _create_ollama_model():
+    """Create an Ollama model instance."""
+    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+    model_name = os.getenv("OLLAMA_LLM_MODEL", "qwen2.5")
+
+    model = ChatOllama(
+        model=model_name,
+        base_url=ollama_url,
+        temperature=0.1,
+    )
+    return model, model_name, ollama_url
+
+
 def create_agent():
     """Create the LangGraph agent with tools."""
-    use_local = os.getenv("USE_LOCAL_LLM", "false").lower() == "true"
-    api_key = os.getenv("GOOGLE_API_KEY")
+    use_bedrock = os.getenv("USE_BEDROCK", "true").lower() == "true"
 
-    if use_local:
-        # Use local Ollama instance
-        # For tool calling, we recommend models like qwen2.5:7b or llama3.1
-        ollama_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-        model_name = os.getenv("LOCAL_LLM_MODEL", "qwen2.5")
-        
-        model = ChatOllama(
-            model=model_name,
-            base_url=ollama_url,
-            temperature=0.1,
-        )
-        print(f"AI Agent: Initialized with LOCAL LLM ({model_name}) via Ollama at {ollama_url}")
-    else:
-        if not api_key:
+    primary_model = None
+    fallback_model = None
+    fallback_model_with_tools = None
+
+    if use_bedrock:
+        try:
+            model, model_id, region = _create_bedrock_model()
+            primary_model = model
+            print(f"AI Agent: Initialized with AWS Bedrock ({model_id}) in {region}")
+        except Exception as e:
+            print(f"AI Agent: Bedrock initialization failed ({e}), falling back to Ollama")
+            primary_model = None
+
+    if primary_model is None:
+        # Either USE_BEDROCK=false or Bedrock init failed — use Ollama as primary
+        try:
+            model, model_name, ollama_url = _create_ollama_model()
+            primary_model = model
+            print(f"AI Agent: Initialized with Ollama ({model_name}) at {ollama_url}")
+        except Exception as e:
+            print(f"AI Agent: Ollama initialization also failed ({e})")
             return None
 
-        # Use gemini-flash-latest which points to the most stable flash model (1.5 or 2.0)
-        model = ChatGoogleGenerativeAI(
-            model="gemini-flash-latest",
-            google_api_key=api_key,
-            temperature=0.3,
-            max_output_tokens=2048
-        )
-        print("AI Agent: Initialized with Google Gemini (Cloud)")
+    # Always prepare Ollama as fallback when Bedrock is primary
+    if use_bedrock:
+        try:
+            fb_model, fb_name, fb_url = _create_ollama_model()
+            fallback_model = fb_model
+            print(f"AI Agent: Ollama fallback ready ({fb_name}) at {fb_url}")
+        except Exception:
+            print("AI Agent: Ollama fallback unavailable")
+            fallback_model = None
 
     tools = [
         query_database,
@@ -99,7 +134,10 @@ def create_agent():
         search_similar_customers
     ]
 
-    model_with_tools = model.bind_tools(tools)
+    model_with_tools = primary_model.bind_tools(tools)
+    if fallback_model is not None:
+        fallback_model_with_tools = fallback_model.bind_tools(tools)
+
     tool_node = ToolNode(tools)
 
     def should_continue(state: AgentState):
@@ -114,15 +152,25 @@ def create_agent():
             response = model_with_tools.invoke(messages)
             return {"messages": [response]}
         except Exception as e:
-            if not use_local and ("429" in str(e) or "quota" in str(e).lower()):
-                # Fallback mock response for demo stability when quota is exceeded
-                mock_msg = HumanMessage(content="[DEMO MODE] The Gemini API quota is currently exceeded. In a production environment with billing enabled, I would now analyze the data and provide a detailed answer. Please check your Google Cloud Console for quota details.")
-                return {"messages": [mock_msg]}
-            
+            # If primary (Bedrock) fails, try fallback (Ollama)
+            if fallback_model_with_tools is not None:
+                try:
+                    print(f"AI Agent: Primary model failed ({e}), retrying with Ollama fallback")
+                    response = fallback_model_with_tools.invoke(messages)
+                    return {"messages": [response]}
+                except Exception as fallback_err:
+                    error_msg = f"Both primary and fallback models failed. Primary: {e} | Fallback: {fallback_err}"
+                    return {"messages": [HumanMessage(content=f"I encountered an error: {error_msg}")]}
+
+            # No fallback available
             error_msg = f"Agent error details: {str(e)}"
-            if use_local and "404" in str(e):
-                error_msg = f"Local model '{os.getenv('LOCAL_LLM_MODEL', 'qwen2.5')}' not found. Please run 'ollama pull {os.getenv('LOCAL_LLM_MODEL', 'qwen2.5')}' on your host machine."
-            
+            ollama_model_name = os.getenv("OLLAMA_LLM_MODEL", "qwen2.5")
+            if "404" in str(e):
+                error_msg = (
+                    f"Model not found. Please verify the model is available. "
+                    f"For Ollama, run 'ollama pull {ollama_model_name}' on your host machine."
+                )
+
             return {"messages": [HumanMessage(content=f"I encountered an error: {error_msg}")]}
 
     workflow = StateGraph(AgentState)
@@ -149,7 +197,7 @@ def run_agent(prompt: str) -> str:
     """Run the AI agent with a user prompt and return the response."""
     agent = get_agent()
     if agent is None:
-        return "AI Agent unavailable — GOOGLE_API_KEY not configured."
+        return "AI Agent unavailable — no LLM configured (Bedrock and Ollama both failed)."
 
     try:
         result = agent.invoke({

@@ -26,10 +26,18 @@ interface RevenueForecastChartProps {
 }
 
 export function RevenueForecastChart({ data }: RevenueForecastChartProps) {
-  // Ensure data is formatted correctly for Recharts
-  const chartData = Array.isArray(data) 
-    ? data 
-    : [...(data?.historical || []), ...(data?.forecast || [])];
+  const chartData = (() => {
+    if (Array.isArray(data)) return data;
+    const historical = (data?.historical || []).map((d: any) => ({
+      month: d.month,
+      actual: d.revenue,
+    }));
+    const forecast = (data?.forecast || []).map((d: any) => ({
+      month: d.month,
+      forecast: d.revenue,
+    }));
+    return [...historical, ...forecast];
+  })();
 
   return (
     <motion.div

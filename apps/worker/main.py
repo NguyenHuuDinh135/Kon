@@ -125,42 +125,58 @@ def load_ecommerce_churn():
 
 
 def generate_churn_embeddings():
-    """Generate embeddings for customer churn profiles (for vector search)."""
-    use_ollama = os.getenv("USE_OLLAMA", "").lower() == "true"
-    
-    if use_ollama:
+    """Generate embeddings for customer churn profiles (for vector search).
+
+    Primary: AWS Bedrock Titan Embed v2 (when USE_BEDROCK=true, default)
+    Fallback: Ollama mxbai-embed-large (local)
+    """
+    use_bedrock = os.getenv("USE_BEDROCK", "true").lower() == "true"
+    ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+    ollama_model = os.getenv("OLLAMA_EMBEDDING_MODEL", "mxbai-embed-large")
+    bedrock_region = os.getenv("AWS_REGION", "us-west-2")
+    bedrock_model_id = os.getenv("BEDROCK_EMBEDDING_MODEL", "amazon.titan-embed-text-v2:0")
+
+    embeddings_model = None
+
+    # Primary: AWS Bedrock Titan Embed v2
+    if use_bedrock:
+        try:
+            from langchain_aws import BedrockEmbeddings
+            print(f"🚀 Using AWS Bedrock embeddings ({bedrock_model_id}, region={bedrock_region})...")
+            embeddings_model = BedrockEmbeddings(
+                model_id=bedrock_model_id,
+                region_name=bedrock_region
+            )
+            # Test with a small embed to verify credentials/connectivity
+            embeddings_model.embed_query("test")
+            print("✅ Bedrock embeddings connected successfully")
+        except ImportError:
+            print("⚠️ langchain-aws not available, falling back to Ollama...")
+            embeddings_model = None
+        except Exception as e:
+            print(f"⚠️ Bedrock embeddings failed ({e}), falling back to Ollama...")
+            embeddings_model = None
+
+    # Fallback: Ollama mxbai-embed-large
+    if embeddings_model is None:
         try:
             from langchain_ollama import OllamaEmbeddings
-            base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-            print(f"🚀 Using local Ollama embeddings (nomic-embed-text) at {base_url}...")
+            print(f"🚀 Using Ollama embeddings ({ollama_model}) at {ollama_base_url}...")
             embeddings_model = OllamaEmbeddings(
-                model="nomic-embed-text",
-                base_url=base_url
+                model=ollama_model,
+                base_url=ollama_base_url
             )
         except ImportError:
             print("⚠️ langchain-ollama not available, skipping embeddings")
             return
-    else:
-        try:
-            from langchain_google_genai import GoogleGenerativeAIEmbeddings
-        except ImportError:
-            print("⚠️ langchain-google-genai not available, skipping embeddings")
+        except Exception as e:
+            print(f"⚠️ Ollama embeddings failed ({e}), skipping embeddings")
             return
-
-        api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            print("⚠️ GOOGLE_API_KEY not set, skipping embeddings")
-            return
-        
-        embeddings_model = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
-            google_api_key=api_key
-        )
 
     # Check if embeddings already exist
     with engine.connect() as conn:
         try:
-            conn.execute(text("ALTER TABLE customer_churn ADD COLUMN IF NOT EXISTS embedding vector(768)"))
+            conn.execute(text("ALTER TABLE customer_churn ADD COLUMN IF NOT EXISTS embedding vector(1024)"))
             conn.commit()
         except Exception:
             pass

@@ -24,6 +24,7 @@ services:
       context: .
       dockerfile: apps/worker/Dockerfile
     container_name: kon_worker
+    restart: on-failure
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -33,9 +34,15 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-nguyenhuudinh}:${DB_PASSWORD:-kon_password}@db:5432/${DB_NAME:-kon_erp_northwind}
-      - KAGGLE_USERNAME=${KAGGLE_USERNAME}
-      - KAGGLE_KEY=${KAGGLE_KEY}
       - PYTHONPATH=/app/packages/db-core:/app/packages/shared:/app/packages/ai-engine:/app/packages/mcp-servers
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     depends_on:
       db:
         condition: service_healthy
@@ -47,6 +54,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: kon_api
+    restart: unless-stopped
     command: uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -60,11 +68,16 @@ services:
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-nguyenhuudinh}:${DB_PASSWORD:-kon_password}@db:5432/${DB_NAME:-kon_erp_northwind}
       - PYTHONPATH=/app/packages/db-core:/app/packages/shared:/app/packages/ai-engine:/app/packages/mcp-servers:/app/apps/api
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
     healthcheck:
       test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")'"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       db:
         condition: service_healthy
@@ -75,9 +88,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000
     container_name: kon_web
+    restart: unless-stopped
     ports:
       - "3000:3000"
     env_file:

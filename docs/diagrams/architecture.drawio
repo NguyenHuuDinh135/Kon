@@ -1,0 +1,289 @@
+<mxfile host="app.diagrams.net" modified="2026-05-14T00:00:00.000Z" agent="Claude Code" version="24.0.0" type="device">
+  <diagram name="System Architecture" id="arch-v2">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══════════ TITLE ═══════════ -->
+        <mxCell id="title" value="KIẾN TRÚC TỔNG QUAN HỆ THỐNG KON ERP" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;fontColor=#2c3e50;" vertex="1" parent="1">
+          <mxGeometry x="350" y="15" width="700" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Turborepo Monorepo · Docker Compose · Dual-Language Stack (TypeScript + Python)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#7f8c8d;" vertex="1" parent="1">
+          <mxGeometry x="380" y="45" width="640" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ DOCKER COMPOSE BOUNDARY ═══════════ -->
+        <mxCell id="docker-boundary" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#7f8c8d;dashed=1;dashPattern=8 4;strokeWidth=2;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="920" height="880" as="geometry" />
+        </mxCell>
+        <mxCell id="docker-label" value="Docker Compose — kon_network" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=10;fontStyle=1;fontColor=#7f8c8d;" vertex="1" parent="1">
+          <mxGeometry x="75" y="73" width="220" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ LAYER 1: CLIENT ═══════════ -->
+        <mxCell id="layer1-label" value="CLIENT LAYER" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;fontStyle=1;fontColor=#4A90D9;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="80" y="98" width="100" height="15" as="geometry" />
+        </mxCell>
+
+        <mxCell id="browser" value="&lt;b style=&quot;font-size:12px&quot;&gt;Web Browser&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#555&quot;&gt;(storefront) — Public pages&lt;br&gt;(admin) — Dashboard, Predictions, Agent Chat&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF5FB;strokeColor=#4A90D9;strokeWidth=1.5;arcSize=8;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="340" y="100" width="320" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ LAYER 2: WEB SERVICE ═══════════ -->
+        <mxCell id="layer2-label" value="PRESENTATION LAYER" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;fontStyle=1;fontColor=#4A90D9;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="80" y="198" width="140" height="15" as="geometry" />
+        </mxCell>
+
+        <mxCell id="web-service" value="&lt;b style=&quot;font-size:12px&quot;&gt;Next.js 16&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;React 19 · App Router · Standalone Output&lt;br&gt;74 shadcn/Radix Components · Recharts · Motion v12&lt;br&gt;SSR via INTERNAL_API_URL · Middleware Auth (kon_token)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF5FB;strokeColor=#4A90D9;strokeWidth=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="280" y="210" width="440" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="web-port" value="&lt;font style=&quot;font-size:8px;color:#4A90D9&quot;&gt;:3000&lt;/font&gt;" style="text;html=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="700" y="210" width="30" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ LAYER 3: APPLICATION SERVICES ═══════════ -->
+        <mxCell id="layer3-label" value="APPLICATION LAYER" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;fontStyle=1;fontColor=#27AE60;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="80" y="328" width="140" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- API Service -->
+        <mxCell id="api-service" value="&lt;b style=&quot;font-size:12px&quot;&gt;FastAPI&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;JWT Authentication · Rate Limiting (slowapi)&lt;br&gt;Uvicorn ASGI · RESTful Endpoints&lt;br&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#888&quot;&gt;Routers: auth · customers · orders · products&lt;br&gt;analytics · predictions · campaigns · agent&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAFAF1;strokeColor=#27AE60;strokeWidth=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="100" y="350" width="310" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="api-port" value="&lt;font style=&quot;font-size:8px;color:#27AE60&quot;&gt;:8000&lt;/font&gt;" style="text;html=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="385" y="350" width="30" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Worker Service -->
+        <mxCell id="worker-service" value="&lt;b style=&quot;font-size:12px&quot;&gt;Worker&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;ETL Pipeline (Kaggle → PostgreSQL)&lt;br&gt;ML Training (APScheduler 4h cycle)&lt;br&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#888&quot;&gt;K-Means · Decision Tree&lt;br&gt;Logistic Regression · Revenue Forecast&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9E7;strokeColor=#F39C12;strokeWidth=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="580" y="350" width="310" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="worker-mem" value="&lt;font style=&quot;font-size:8px;color:#F39C12&quot;&gt;mem: 2G&lt;/font&gt;" style="text;html=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="860" y="350" width="40" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ LAYER 4: AI/ML ENGINE ═══════════ -->
+        <mxCell id="layer4-label" value="AI / ML LAYER" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;fontStyle=1;fontColor=#8E44AD;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="80" y="498" width="100" height="15" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai-engine" value="&lt;b style=&quot;font-size:12px&quot;&gt;AI Engine — LangGraph ReAct Agent&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;Autonomous Loop: Observe → Analyze → Plan → Act&lt;br&gt;Human-in-the-Loop approval for campaigns&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4ECF7;strokeColor=#8E44AD;strokeWidth=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="100" y="520" width="440" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mcp-tools" value="&lt;b style=&quot;font-size:10px&quot;&gt;7 MCP Tools&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#555&quot;&gt;query_database · get_customer_profile&lt;br&gt;get_churn_risk_summary · get_product_recommendations&lt;br&gt;get_revenue_insights · suggest_campaign&lt;br&gt;search_similar_customers (pgvector)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4ECF7;strokeColor=#8E44AD;strokeWidth=1;arcSize=8;dashed=1;dashPattern=3 3;" vertex="1" parent="1">
+          <mxGeometry x="580" y="520" width="310" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ LAYER 5: DATA LAYER ═══════════ -->
+        <mxCell id="layer5-label" value="DATA LAYER" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;fontStyle=1;fontColor=#2C3E50;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="80" y="638" width="100" height="15" as="geometry" />
+        </mxCell>
+
+        <mxCell id="database" value="&lt;b style=&quot;font-size:13px&quot;&gt;PostgreSQL 16 + pgvector&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;Olist ERP (9 tables) · Online Retail · Customer Churn&lt;br&gt;System: users · audit_logs · notifications · campaigns&lt;br&gt;ML: ml_model_metrics · ml_recommendations&lt;br&gt;Vector: embedding column Vector(1024) — cosine similarity search&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#F8F9FA;strokeColor=#2C3E50;strokeWidth=1.5;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="250" y="660" width="500" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="db-port" value="&lt;font style=&quot;font-size:8px;color:#2C3E50&quot;&gt;:5432&lt;/font&gt;" style="text;html=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="730" y="660" width="30" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Alembic badge -->
+        <mxCell id="alembic" value="&lt;font style=&quot;font-size:8px&quot;&gt;Alembic Migrations&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAECEE;strokeColor=#ABB2B9;arcSize=20;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="260" y="790" width="110" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlalchemy" value="&lt;font style=&quot;font-size:8px&quot;&gt;SQLAlchemy ORM&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAECEE;strokeColor=#ABB2B9;arcSize=20;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="385" y="790" width="100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pydantic" value="&lt;font style=&quot;font-size:8px&quot;&gt;Pydantic Schemas&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAECEE;strokeColor=#ABB2B9;arcSize=20;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="500" y="790" width="110" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ EXTERNAL SERVICES (OUTSIDE DOCKER) ═══════════ -->
+        <mxCell id="ext-boundary" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDFEFE;strokeColor=#ABB2B9;dashed=1;dashPattern=5 3;strokeWidth=1;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="100" width="340" height="530" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-label" value="External Services" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;fontStyle=1;fontColor=#7f8c8d;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="103" width="110" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- AWS Bedrock -->
+        <mxCell id="bedrock" value="&lt;b style=&quot;font-size:11px&quot;&gt;AWS Bedrock&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;(Primary LLM + Embeddings)&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#333&quot;&gt;Claude Haiku 3.5&lt;br&gt;Titan Embed v2 (1024-dim)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9900;strokeColor=#CC7700;fontColor=#FFFFFF;strokeWidth=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="140" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Ollama -->
+        <mxCell id="ollama" value="&lt;b style=&quot;font-size:11px&quot;&gt;Ollama (Host)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;(Fallback when Bedrock unavailable)&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#333&quot;&gt;qwen2.5 (LLM)&lt;br&gt;mxbai-embed-large (1024-dim)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#27AE60;strokeColor=#1E8449;fontColor=#FFFFFF;strokeWidth=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="270" width="260" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ollama-port" value="&lt;font style=&quot;font-size:8px;color:#27AE60&quot;&gt;host.docker.internal:11434&lt;/font&gt;" style="text;html=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="370" width="180" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Kaggle -->
+        <mxCell id="kaggle" value="&lt;b style=&quot;font-size:11px&quot;&gt;Kaggle Datasets&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#333&quot;&gt;Olist E-Commerce (9 files)&lt;br&gt;Online Retail (1 Excel)&lt;br&gt;Customer Churn (1 CSV)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#20BEFF;strokeColor=#0EA5E9;fontColor=#FFFFFF;strokeWidth=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="420" width="260" height="95" as="geometry" />
+        </mxCell>
+
+        <!-- GitHub Actions -->
+        <mxCell id="github" value="&lt;b style=&quot;font-size:10px&quot;&gt;GitHub Actions CI&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#555&quot;&gt;lint → typecheck → test → E2E&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#24292E;strokeColor=#1B1F23;fontColor=#FFFFFF;strokeWidth=1.5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="545" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ ARROWS — Labeled with data/protocol ═══════════ -->
+
+        <!-- Browser → Web Service -->
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#4A90D9;strokeWidth=1.5;" edge="1" parent="1" source="browser" target="web-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a1-lbl" value="&lt;font style=&quot;font-size:8px;color:#4A90D9&quot;&gt;HTTP :3000&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a1">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Web → API -->
+        <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;strokeColor=#27AE60;strokeWidth=1.5;" edge="1" parent="1" source="web-service" target="api-service">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2-lbl" value="&lt;font style=&quot;font-size:8px;color:#27AE60&quot;&gt;REST + JWT&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a2">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- API → AI Engine -->
+        <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;entryX=0.3;entryY=0;strokeColor=#8E44AD;strokeWidth=1.5;" edge="1" parent="1" source="api-service" target="ai-engine">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3-lbl" value="&lt;font style=&quot;font-size:8px;color:#8E44AD&quot;&gt;Agent Invoke&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a3">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- AI Engine → MCP Tools -->
+        <mxCell id="a3b" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#8E44AD;strokeWidth=1;dashed=1;dashPattern=4 3;" edge="1" parent="1" source="ai-engine" target="mcp-tools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3b-lbl" value="&lt;font style=&quot;font-size:8px;color:#8E44AD&quot;&gt;Tool Calls&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a3b">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- AI Engine → Database -->
+        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;entryX=0.3;entryY=0;strokeColor=#2C3E50;strokeWidth=1.5;" edge="1" parent="1" source="ai-engine" target="database">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a4-lbl" value="&lt;font style=&quot;font-size:8px;color:#2C3E50&quot;&gt;SELECT (read-only)&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a4">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Worker → Database -->
+        <mxCell id="a5" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;entryX=0.7;entryY=0;strokeColor=#F39C12;strokeWidth=1.5;" edge="1" parent="1" source="worker-service" target="database">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a5-lbl" value="&lt;font style=&quot;font-size:8px;color:#F39C12&quot;&gt;INSERT / bulk_insert&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a5">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- API → Database -->
+        <mxCell id="a6" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.2;exitY=1;entryX=0.15;entryY=0;strokeColor=#2C3E50;strokeWidth=1;" edge="1" parent="1" source="api-service" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="162" y="490" />
+              <mxPoint x="162" y="630" />
+              <mxPoint x="325" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a6-lbl" value="&lt;font style=&quot;font-size:8px;color:#2C3E50&quot;&gt;CRUD&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a6">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- AI Engine → Bedrock (primary) -->
+        <mxCell id="a7" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=1;exitY=0.3;entryX=0;entryY=0.5;strokeColor=#CC7700;strokeWidth=2;" edge="1" parent="1" source="ai-engine" target="bedrock">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="990" y="541" />
+              <mxPoint x="990" y="190" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a7-lbl" value="&lt;font style=&quot;font-size:8px;color:#CC7700&quot;&gt;&lt;b&gt;Primary&lt;/b&gt; LLM + Embed&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a7">
+          <mxGeometry x="0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- AI Engine → Ollama (fallback) -->
+        <mxCell id="a8" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;strokeColor=#1E8449;strokeWidth=1.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="ai-engine" target="ollama">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="569" />
+              <mxPoint x="1000" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a8-lbl" value="&lt;font style=&quot;font-size:8px;color:#1E8449&quot;&gt;Fallback&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a8">
+          <mxGeometry x="0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Worker → Kaggle -->
+        <mxCell id="a9" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;strokeColor=#0EA5E9;strokeWidth=1.5;" edge="1" parent="1" source="worker-service" target="kaggle">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="427" />
+              <mxPoint x="1010" y="468" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a9-lbl" value="&lt;font style=&quot;font-size:8px;color:#0EA5E9&quot;&gt;Download CSV/Excel&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="a9">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════ LEGEND ═══════════ -->
+        <mxCell id="legend" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#D5D8DC;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="700" width="340" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;align=left;fontSize=10;strokeColor=none;fillColor=none;fontColor=#2C3E50;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="705" width="60" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF5FB;strokeColor=#4A90D9;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="728" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1t" value="&lt;font style=&quot;font-size:9px&quot;&gt;Frontend (TypeScript)&lt;/font&gt;" style="text;html=1;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="726" width="130" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAFAF1;strokeColor=#27AE60;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="748" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2t" value="&lt;font style=&quot;font-size:9px&quot;&gt;Backend API (Python)&lt;/font&gt;" style="text;html=1;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="746" width="130" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF9E7;strokeColor=#F39C12;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="768" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3t" value="&lt;font style=&quot;font-size:9px&quot;&gt;ETL + ML Worker&lt;/font&gt;" style="text;html=1;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="766" width="130" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4ECF7;strokeColor=#8E44AD;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="788" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4t" value="&lt;font style=&quot;font-size:9px&quot;&gt;AI / ML Engine&lt;/font&gt;" style="text;html=1;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="786" width="130" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="" style="endArrow=classic;html=1;strokeColor=#333;strokeWidth=1.5;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1035" y="815" as="sourcePoint" />
+            <mxPoint x="1055" y="815" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg5t" value="&lt;font style=&quot;font-size:9px&quot;&gt;Primary data flow&lt;/font&gt;" style="text;html=1;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="808" width="130" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6" value="" style="endArrow=classic;html=1;strokeColor=#333;strokeWidth=1;dashed=1;dashPattern=5 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1035" y="833" as="sourcePoint" />
+            <mxPoint x="1055" y="833" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg6t" value="&lt;font style=&quot;font-size:9px&quot;&gt;Fallback / secondary path&lt;/font&gt;" style="text;html=1;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="826" width="150" height="18" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

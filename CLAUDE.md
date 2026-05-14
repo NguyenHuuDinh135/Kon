@@ -11,7 +11,7 @@ apps/web       → Next.js 16 (React 19, Tailwind 4, Turbopack dev)
 apps/api       → FastAPI (JWT auth, slowapi rate limiting, uvicorn)
 apps/worker    → ETL pipeline (Kaggle → PostgreSQL) + APScheduler (4h ML retraining cycle)
 packages/ui    → 74 shadcn/Radix components, Recharts, Framer Motion (motion v12)
-packages/ai-engine → scikit-learn ML models + LangGraph agent + local Ollama (qwen2.5:7B) with Gemini fallback
+packages/ai-engine → scikit-learn ML models + LangGraph agent + AWS Bedrock (Claude Haiku) with Ollama fallback
 packages/db-core   → SQLAlchemy models + Alembic migrations + pgvector
 packages/shared    → Pydantic schemas shared between API and frontend
 packages/mcp-servers → 7 agent tools with guardrails
@@ -24,7 +24,12 @@ Two route groups in `apps/web`:
 ## Commands
 
 ```bash
-# Development
+# Development (Docker Compose — recommended)
+docker compose up -d                     # Start all 4 services
+docker compose logs -f api               # Tail API logs
+docker compose down                      # Stop all
+
+# Development (standalone, requires PYTHONPATH)
 npm run dev                              # All apps via turbo (web :3000, api :8000)
 npm run build                            # Production build
 npm run lint && npm run typecheck         # Check all workspaces
@@ -45,7 +50,7 @@ PYTHONPATH=packages/db-core:packages/shared:packages/ai-engine \
 pytest apps/api/tests/                   # API integration
 pytest packages/ai-engine/tests/         # ML model tests
 pytest apps/worker/tests/                # ETL tests
-npx playwright test --project=chromium   # E2E (from apps/web)
+cd apps/web && npx playwright test       # E2E (requires Docker stack running)
 
 # Formatting
 npx prettier --write "apps/web/**/*.{ts,tsx}"
@@ -65,15 +70,15 @@ Three Kaggle datasets form a 3-layer topology:
 
 System tables: users, audit_logs, system_alerts, notifications, campaigns, ml_model_metrics, ml_recommendations.
 
-`customer_churn` has a pgvector `Vector(768)` column for embedding-based semantic search using nomic-embed-text (local) or Gemini (cloud).
+`customer_churn` has a pgvector `Vector(1024)` column for embedding-based semantic search using Bedrock Titan Embed v2 (primary) or Ollama mxbai-embed-large (fallback).
 
 ## AI Agent
 
-LangGraph ReAct agent (`packages/ai-engine/ai_engine/agent.py`) with **local Ollama (qwen2.5:7B) as primary** for chat and embeddings. Requires `USE_LOCAL_LLM=true` + `OLLAMA_BASE_URL` to be set. Falls back to Gemini Flash (cloud) if Ollama is unavailable or `USE_LOCAL_LLM=false`.
+LangGraph ReAct agent (`packages/ai-engine/ai_engine/agent.py`) with **AWS Bedrock Claude Haiku 3.5 as primary** LLM. Falls back to local Ollama (qwen2.5:7B) if Bedrock is unavailable.
 
 For embeddings:
-- **Local**: `nomic-embed-text` model via Ollama (768-dim vectors) — recommended for cost savings
-- **Cloud**: Gemini text-embedding-004 (fallback if Ollama not available)
+- **Primary**: AWS Bedrock Titan Embed v2 (1024-dim vectors)
+- **Fallback**: Ollama `mxbai-embed-large` (1024-dim, local)
 
 7 MCP tools in `packages/mcp-servers/mcp_servers/tools.py`:
 - `query_database` — Read-only SQL (50 row limit)
@@ -104,7 +109,7 @@ Model evaluation includes SHAP values, ROC curves, learning curves, and version 
 - **API client** (`apps/web/lib/api.ts`): SSR uses `INTERNAL_API_URL` (defaults to `http://api:8000`), client uses `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`). Auth token stored in localStorage + cookie.
 - **Python path resolution**: Both `apps/api/main.py` and `apps/worker/main.py` manually append package paths with `sys.path.append`. When running outside Docker, set `PYTHONPATH=packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers`.
 - **UI components**: Import from `@workspace/ui/components/<name>`. Project-specific components in `apps/web/components/`.
-- **Route protection**: Admin routes use `require_admin` dependency (from `apps/api/routers/auth.py`). Frontend checks token presence.
+- **Route protection**: Admin routes use `require_admin` dependency (from `apps/api/routers/auth.py`). Frontend middleware checks `kon_token` cookie → redirects to `/login`.
 - **Rate limiting**: slowapi on all API endpoints, keyed by remote address.
 
 ## Environment Variables
@@ -114,23 +119,34 @@ Required in `.env` at project root:
 - `JWT_SECRET_KEY` — 32+ characters
 - `KAGGLE_USERNAME` / `KAGGLE_KEY` — For ETL dataset downloads
 
-Local LLM & Embeddings (recommended):
-- `USE_LOCAL_LLM=true` — Enable local Ollama for agent chat
-- `LOCAL_LLM_MODEL=qwen2.5` — Ollama model name (e.g., `qwen2.5`, `llama3.1`)
-- `OLLAMA_BASE_URL=http://host.docker.internal:11434` — Ollama server endpoint
-- `USE_OLLAMA=true` — Enable local embeddings via `nomic-embed-text`
+LLM & Embeddings (Bedrock primary):
+- `USE_BEDROCK=true` — Enable AWS Bedrock as primary LLM/embedding provider
+- `AWS_REGION=us-west-2` — AWS region for Bedrock
+- `BEDROCK_MODEL_ID=us.anthropic.claude-haiku-4-5-20251001-v1:0` — LLM model
+- `BEDROCK_EMBEDDING_MODEL=amazon.titan-embed-text-v2:0` — Embedding model (1024-dim)
+- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` — AWS credentials (for Docker containers)
 
-Cloud LLM (fallback):
-- `GOOGLE_API_KEY` — Gemini API key (required only if local LLM unavailable)
+Ollama fallback (when Bedrock unavailable):
+- `OLLAMA_BASE_URL=http://host.docker.internal:11434` — Ollama server endpoint
+- `OLLAMA_LLM_MODEL=qwen2.5` — Chat model fallback
+- `OLLAMA_EMBEDDING_MODEL=mxbai-embed-large` — Embedding model fallback (1024-dim)
 
 Optional:
 - `CORS_ORIGINS` — Comma-separated (defaults to `http://localhost:3000`)
 
 ## Deployment
 
-AWS via GitHub Actions (`deploy.yml`): builds Docker images → pushes to ECR → deploys. E2E tests run in separate workflow (`e2e.yml`).
+Docker Compose (local only). No cloud deployment — runs entirely on the developer machine.
 
-Docker Compose runs three services (db, api, worker) on `kon_network`. The web app is built separately for deployment.
+Four services on `kon_network`:
+- `db` — PostgreSQL + pgvector (port 5432, `restart: always`)
+- `worker` — ETL + ML retraining (`restart: on-failure`, 2G memory limit)
+- `api` — FastAPI (port 8000, `restart: unless-stopped`)
+- `web` — Next.js standalone (port 3000, `restart: unless-stopped`, uses `INTERNAL_API_URL=http://api:8000` for SSR)
+
+Ollama runs on the host machine (port 11434), accessible from containers via `host.docker.internal`.
+
+CI runs via GitHub Actions (`e2e.yml`): lint → typecheck → Python tests → Playwright E2E.
 
 ## Code Style
 

@@ -263,20 +263,31 @@ def suggest_campaign(segment: str = "high_churn") -> str:
 def search_similar_customers(description: str, limit: int = 5) -> str:
     """Find customers matching a natural language description using semantic search.
     Example: 'customers who spend a lot but haven't ordered recently'"""
-    try:
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
-    except ImportError:
-        return "langchain-google-genai not installed. Vector search unavailable."
 
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        return "GOOGLE_API_KEY not configured for vector search."
+    embeddings_model = None
+    use_bedrock = os.getenv("USE_BEDROCK", "true").lower() == "true"
+
+    if use_bedrock:
+        try:
+            from langchain_aws import BedrockEmbeddings
+            embeddings_model = BedrockEmbeddings(
+                model_id=os.getenv("BEDROCK_EMBEDDING_MODEL", "amazon.titan-embed-text-v2:0"),
+                region_name=os.getenv("AWS_REGION", "us-west-2")
+            )
+        except Exception:
+            pass
+
+    if embeddings_model is None:
+        try:
+            from langchain_ollama import OllamaEmbeddings
+            embeddings_model = OllamaEmbeddings(
+                model=os.getenv("OLLAMA_EMBEDDING_MODEL", "mxbai-embed-large"),
+                base_url=os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+            )
+        except Exception:
+            return "No embedding model available. Check Bedrock credentials or Ollama status."
 
     try:
-        embeddings_model = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
-            google_api_key=api_key
-        )
         query_vector = embeddings_model.embed_query(description)
 
         with engine.connect() as conn:

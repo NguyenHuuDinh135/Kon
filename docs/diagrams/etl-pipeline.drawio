@@ -1,0 +1,280 @@
+<mxfile host="app.diagrams.net" modified="2026-05-14T00:00:00.000Z" agent="Claude Code" version="24.0.0" type="device">
+  <diagram name="ETL Pipeline" id="etl-v2">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══════════ TITLE ═══════════ -->
+        <mxCell id="title" value="QUY TRÌNH ETL PIPELINE — WORKER SERVICE" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;fontColor=#2c3e50;" vertex="1" parent="1">
+          <mxGeometry x="400" y="15" width="800" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="APScheduler · Chu kỳ 4 giờ · Python 3.11 · Pandas + scikit-learn" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=10;fontColor=#7f8c8d;" vertex="1" parent="1">
+          <mxGeometry x="450" y="45" width="700" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ PHASE DIVIDERS (vertical lines) ═══════════ -->
+        <mxCell id="div1" style="endArrow=none;html=1;strokeColor=#D5D8DC;strokeWidth=1;dashed=1;dashPattern=5 5;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="340" y="80" as="sourcePoint" />
+            <mxPoint x="340" y="850" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="div2" style="endArrow=none;html=1;strokeColor=#D5D8DC;strokeWidth=1;dashed=1;dashPattern=5 5;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="730" y="80" as="sourcePoint" />
+            <mxPoint x="730" y="850" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="div3" style="endArrow=none;html=1;strokeColor=#D5D8DC;strokeWidth=1;dashed=1;dashPattern=5 5;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1070" y="80" as="sourcePoint" />
+            <mxPoint x="1070" y="850" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Phase headers -->
+        <mxCell id="ph1" value="① EXTRACT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0EA5E9;strokeColor=#0284C7;fontColor=#FFFFFF;fontStyle=1;fontSize=13;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="110" y="75" width="150" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ph2" value="② TRANSFORM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8B5CF6;strokeColor=#7C3AED;fontColor=#FFFFFF;fontStyle=1;fontSize=13;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="460" y="75" width="170" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ph3" value="③ LOAD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#10B981;strokeColor=#059669;fontColor=#FFFFFF;fontStyle=1;fontSize=13;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="840" y="75" width="140" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ph4" value="④ TRAIN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EF4444;strokeColor=#DC2626;fontColor=#FFFFFF;fontStyle=1;fontSize=13;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="75" width="140" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ EXTRACT PHASE ═══════════ -->
+        <!-- Kaggle API -->
+        <mxCell id="kaggle-api" value="&lt;b&gt;kagglehub API&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px;color:#666&quot;&gt;Authenticated download&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0F9FF;strokeColor=#BAE6FD;arcSize=8;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Dataset 1: Olist -->
+        <mxCell id="ds-olist" value="&lt;b style=&quot;color:#0369A1&quot;&gt;Olist E-Commerce&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;9 CSV files · ~100K orders&lt;br&gt;customers · products · sellers&lt;br&gt;payments · reviews · geolocation&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0EA5E9;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="210" width="180" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Dataset 2: Online Retail -->
+        <mxCell id="ds-retail" value="&lt;b style=&quot;color:#0369A1&quot;&gt;Online Retail&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;1 Excel file&lt;br&gt;4,300+ unique customers&lt;br&gt;500K+ transactions&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0EA5E9;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="180" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Dataset 3: Churn -->
+        <mxCell id="ds-churn" value="&lt;b style=&quot;color:#0369A1&quot;&gt;Customer Churn&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;1 CSV file&lt;br&gt;5,000+ labeled records&lt;br&gt;Engagement features&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0EA5E9;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="420" width="180" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Validation step -->
+        <mxCell id="validate" value="&lt;font style=&quot;font-size:9px&quot;&gt;✓ Null check&lt;br&gt;✓ Duplicate check&lt;br&gt;✓ Schema validation&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#6EE7B7;arcSize=8;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="100" y="525" width="140" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ TRANSFORM PHASE ═══════════ -->
+        <!-- Step 1: Normalize -->
+        <mxCell id="t-norm" value="&lt;b&gt;Chuẩn hóa cột&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;snake_case naming&lt;br&gt;Consistent dtypes&lt;br&gt;pandas DataFrame&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8B5CF6;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="140" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Missing values -->
+        <mxCell id="t-missing" value="&lt;b&gt;Xử lý Missing Values&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;Numeric → median imputation&lt;br&gt;Categorical → mode imputation&lt;br&gt;Drop if &gt;50% null&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8B5CF6;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="240" width="200" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: Feature Engineering -->
+        <mxCell id="t-feat" value="&lt;b&gt;Feature Engineering&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;RFM Scores:&lt;br&gt;• Recency (days since last order)&lt;br&gt;• Frequency (order count)&lt;br&gt;• Monetary (total spend)&lt;br&gt;StandardScaler normalization&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8B5CF6;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="345" width="200" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4: Embeddings -->
+        <mxCell id="t-embed" value="&lt;b&gt;Vector Embeddings&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;Primary: Bedrock Titan Embed v2&lt;br&gt;Fallback: Ollama mxbai-embed-large&lt;br&gt;&lt;b&gt;1024-dimensional vectors&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7ED;strokeColor=#F59E0B;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="485" width="200" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Transform arrows (internal flow) -->
+        <mxCell id="tf1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#8B5CF6;strokeWidth=1.5;" edge="1" parent="1" source="t-norm" target="t-missing">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tf2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#8B5CF6;strokeWidth=1.5;" edge="1" parent="1" source="t-missing" target="t-feat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tf3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#8B5CF6;strokeWidth=1.5;" edge="1" parent="1" source="t-feat" target="t-embed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ LOAD PHASE ═══════════ -->
+        <mxCell id="l-sqlalchemy" value="&lt;b&gt;SQLAlchemy ORM&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;Bulk insert operations&lt;br&gt;CREATE TABLE IF NOT EXISTS&lt;br&gt;Alembic schema versioning&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#10B981;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="160" width="210" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l-pgvector" value="&lt;b&gt;pgvector Storage&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;Vector(1024) column&lt;br&gt;Cosine similarity index&lt;br&gt;Semantic search support&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF7ED;strokeColor=#F59E0B;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="270" width="210" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- PostgreSQL cylinder -->
+        <mxCell id="pg-db" value="&lt;b style=&quot;font-size:12px&quot;&gt;PostgreSQL 16&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;+ pgvector extension&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#1B4F72;strokeColor=#154360;fontColor=#FFFFFF;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="815" y="390" width="140" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Tables list -->
+        <mxCell id="tables" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;20+ Tables:&lt;/b&gt;&lt;br&gt;Olist (9) · online_retail_transactions&lt;br&gt;customer_churn · users · audit_logs&lt;br&gt;campaigns · notifications&lt;br&gt;ml_model_metrics · ml_recommendations&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8F9FA;strokeColor=#AEB6BF;arcSize=6;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="770" y="510" width="230" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Load internal arrows -->
+        <mxCell id="lf1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#10B981;strokeWidth=1.5;" edge="1" parent="1" source="l-sqlalchemy" target="l-pgvector">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lf2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#10B981;strokeWidth=1.5;" edge="1" parent="1" source="l-pgvector" target="pg-db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ TRAIN PHASE ═══════════ -->
+        <mxCell id="m-kmeans" value="&lt;b&gt;K-Means Clustering&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;k=5 on RFM features&lt;br&gt;→ VIP · Loyal · Regular&lt;br&gt;   At Risk · Lost&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#EF4444;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="140" width="200" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m-tree" value="&lt;b&gt;Decision Tree&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;GridSearchCV tuning&lt;br&gt;Engagement level prediction&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#EF4444;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="240" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m-logreg" value="&lt;b&gt;Logistic Regression&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;Binary churn (0/1)&lt;br&gt;Probability risk scoring&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#EF4444;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="325" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m-revenue" value="&lt;b&gt;Revenue Forecast&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;Linear Regression&lt;br&gt;Next 3 months projection&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#EF4444;strokeWidth=1.5;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="410" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Evaluation -->
+        <mxCell id="eval" value="&lt;b&gt;Model Evaluation&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;color:#555&quot;&gt;SHAP Values · ROC Curves&lt;br&gt;Learning Curves · Confusion Matrix&lt;br&gt;Version history tracking&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#FECACA;arcSize=6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="500" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Metrics table -->
+        <mxCell id="metrics-tbl" value="&lt;font style=&quot;font-size:9px&quot;&gt;→ &lt;b&gt;ml_model_metrics&lt;/b&gt; table&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8F9FA;strokeColor=#AEB6BF;arcSize=10;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1145" y="590" width="150" height="28" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ MAIN FLOW ARROWS (between phases) ═══════════ -->
+        <!-- Extract → Transform -->
+        <mxCell id="main-f1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;entryX=0;entryY=0.3;strokeColor=#8B5CF6;strokeWidth=2.5;" edge="1" parent="1" source="ds-olist" target="t-norm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="main-f1-lbl" value="&lt;font style=&quot;font-size:8px;color:#8B5CF6&quot;&gt;&lt;b&gt;Raw DataFrames&lt;/b&gt;&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="main-f1">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="main-f1b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#0EA5E9;strokeWidth=1.5;" edge="1" parent="1" source="ds-retail" target="t-missing">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="main-f1c" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#0EA5E9;strokeWidth=1.5;" edge="1" parent="1" source="ds-churn" target="t-feat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Transform → Load -->
+        <mxCell id="main-f2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.3;entryX=0;entryY=0.5;strokeColor=#10B981;strokeWidth=2.5;" edge="1" parent="1" source="t-norm" target="l-sqlalchemy">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="161" />
+              <mxPoint x="650" y="198" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="main-f2-lbl" value="&lt;font style=&quot;font-size:8px;color:#10B981&quot;&gt;&lt;b&gt;Clean Data&lt;/b&gt;&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="main-f2">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Embeddings → pgvector -->
+        <mxCell id="main-f2b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#F59E0B;strokeWidth=2;" edge="1" parent="1" source="t-embed" target="l-pgvector">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="523" />
+              <mxPoint x="660" y="305" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="main-f2b-lbl" value="&lt;font style=&quot;font-size:8px;color:#F59E0B&quot;&gt;&lt;b&gt;Vectors 1024-dim&lt;/b&gt;&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="main-f2b">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- DB → Train (fan-out) -->
+        <mxCell id="main-f3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.3;entryX=0;entryY=0.5;strokeColor=#EF4444;strokeWidth=2.5;" edge="1" parent="1" source="pg-db" target="m-kmeans">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="417" />
+              <mxPoint x="1040" y="178" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="main-f3-lbl" value="&lt;font style=&quot;font-size:8px;color:#EF4444&quot;&gt;&lt;b&gt;Training Data&lt;/b&gt;&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="main-f3">
+          <mxGeometry x="0.5" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="main-f3b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#EF4444;strokeWidth=1.5;" edge="1" parent="1" source="pg-db" target="m-tree">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="435" />
+              <mxPoint x="1040" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="main-f3c" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#EF4444;strokeWidth=1.5;" edge="1" parent="1" source="pg-db" target="m-logreg">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1050" y="435" />
+              <mxPoint x="1050" y="355" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="main-f3d" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;strokeColor=#EF4444;strokeWidth=1.5;" edge="1" parent="1" source="pg-db" target="m-revenue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Feedback loop: metrics → DB -->
+        <mxCell id="feedback" style="edgeStyle=orthogonalEdgeStyle;rounded=1;exitX=0;exitY=0.5;entryX=1;entryY=0.8;strokeColor=#6B7280;strokeWidth=1;dashed=1;dashPattern=5 3;" edge="1" parent="1" source="metrics-tbl" target="pg-db">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1090" y="604" />
+              <mxPoint x="1090" y="680" />
+              <mxPoint x="985" y="680" />
+              <mxPoint x="985" y="462" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="feedback-lbl" value="&lt;font style=&quot;font-size:8px;color:#6B7280&quot;&gt;Save metrics&lt;/font&gt;" style="edgeLabel;html=1;align=center;" vertex="1" connectable="0" parent="feedback">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════ SCHEDULE BADGE ═══════════ -->
+        <mxCell id="schedule" value="&lt;b&gt;⏰ APScheduler&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Cycle: Every 4 hours&lt;br&gt;restart: on-failure · mem_limit: 2G&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEB;strokeColor=#FCD34D;arcSize=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="630" width="230" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════ TECH STACK BADGES ═══════════ -->
+        <mxCell id="tech1" value="&lt;font style=&quot;font-size:8px&quot;&gt;Python 3.11&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAECEE;strokeColor=#ABB2B9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="80" y="710" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tech2" value="&lt;font style=&quot;font-size:8px&quot;&gt;Pandas&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAECEE;strokeColor=#ABB2B9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="158" y="710" width="55" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tech3" value="&lt;font style=&quot;font-size:8px&quot;&gt;scikit-learn&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAECEE;strokeColor=#ABB2B9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="221" y="710" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tech4" value="&lt;font style=&quot;font-size:8px&quot;&gt;langchain-aws&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAECEE;strokeColor=#ABB2B9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="80" y="738" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tech5" value="&lt;font style=&quot;font-size:8px&quot;&gt;SQLAlchemy&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAECEE;strokeColor=#ABB2B9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="168" y="738" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tech6" value="&lt;font style=&quot;font-size:8px&quot;&gt;kagglehub&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAECEE;strokeColor=#ABB2B9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="246" y="738" width="60" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

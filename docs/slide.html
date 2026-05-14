@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KON ERP/CRM - Presentation</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;
+  --surface:#12121a;
+  --surface2:#1a1a2e;
+  --border:#2a2a3e;
+  --text:#e4e4e7;
+  --muted:#71717a;
+  --primary:#6366f1;
+  --primary-glow:#6366f140;
+  --accent:#22d3ee;
+  --green:#34d399;
+  --orange:#fb923c;
+  --purple:#a78bfa;
+  --red:#f87171;
+}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
+.slide{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px 80px;position:relative;overflow:hidden}
+.slide::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at center,var(--primary-glow) 0%,transparent 70%);opacity:0.3;pointer-events:none}
+
+/* Navigation */
+.nav{position:fixed;right:24px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px}
+.nav a{width:10px;height:10px;border-radius:50%;background:var(--border);display:block;transition:all .3s}
+.nav a:hover,.nav a.active{background:var(--primary);box-shadow:0 0 12px var(--primary)}
+.slide-counter{position:fixed;bottom:24px;right:24px;font-size:13px;color:var(--muted);z-index:100;font-variant-numeric:tabular-nums}
+.keyboard-hint{position:fixed;bottom:24px;left:24px;font-size:12px;color:var(--muted);z-index:100;opacity:0.6}
+
+/* Title slide */
+.title-slide{background:linear-gradient(135deg,#0a0a0f 0%,#1a1a2e 50%,#0a0a0f 100%)}
+.title-slide h1{font-size:clamp(3rem,8vw,6rem);font-weight:800;background:linear-gradient(135deg,#fff 0%,var(--primary) 50%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-2px;text-align:center}
+.title-slide .subtitle{font-size:1.4rem;color:var(--muted);margin-top:16px;text-align:center}
+.title-slide .badge{margin-top:32px;display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:100px;background:var(--surface2);border:1px solid var(--border);font-size:14px;color:var(--accent)}
+.title-slide .badge::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.team-info{margin-top:48px;text-align:center;color:var(--muted);font-size:14px;line-height:2}
+
+/* Section headers */
+.section-header{text-align:center;margin-bottom:48px}
+.section-header .tag{display:inline-block;padding:4px 14px;border-radius:100px;background:var(--primary);color:#fff;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.section-header h2{font-size:clamp(2rem,4vw,3.2rem);font-weight:700;color:#fff;letter-spacing:-1px}
+.section-header p{color:var(--muted);font-size:1.1rem;margin-top:8px;max-width:600px;margin-inline:auto}
+
+/* Grid layouts */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:32px;width:100%;max-width:1200px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;width:100%;max-width:1200px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;width:100%;max-width:1200px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;transition:all .3s;position:relative;overflow:hidden}
+.card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 8px 32px var(--primary-glow)}
+.card .icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px}
+.card h3{font-size:1.1rem;font-weight:600;margin-bottom:8px}
+.card p{font-size:0.9rem;color:var(--muted);line-height:1.5}
+.card .metric{font-size:2rem;font-weight:700;margin-bottom:4px}
+.icon-blue{background:rgba(99,102,241,0.15);color:var(--primary)}
+.icon-green{background:rgba(52,211,153,0.15);color:var(--green)}
+.icon-orange{background:rgba(251,146,60,0.15);color:var(--orange)}
+.icon-purple{background:rgba(167,139,250,0.15);color:var(--purple)}
+.icon-red{background:rgba(248,113,113,0.15);color:var(--red)}
+.icon-cyan{background:rgba(34,211,238,0.15);color:var(--accent)}
+
+/* Architecture diagram */
+.arch-flow{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;max-width:1100px}
+.arch-box{padding:16px 24px;border-radius:12px;text-align:center;min-width:140px;font-weight:600;font-size:14px;border:1px solid}
+.arch-arrow{font-size:24px;color:var(--muted)}
+.arch-client{background:rgba(34,211,238,0.1);border-color:rgba(34,211,238,0.3);color:var(--accent)}
+.arch-web{background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.3);color:var(--primary)}
+.arch-api{background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);color:var(--green)}
+.arch-ai{background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.3);color:var(--purple)}
+.arch-data{background:rgba(251,146,60,0.1);border-color:rgba(251,146,60,0.3);color:var(--orange)}
+
+/* Screenshot slides */
+.screenshot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;width:100%;max-width:1300px}
+.screenshot-card{border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface);transition:all .3s}
+.screenshot-card:hover{border-color:var(--primary);transform:scale(1.02)}
+.screenshot-card img{width:100%;height:240px;object-fit:cover;object-position:top;display:block}
+.screenshot-card .label{padding:12px 16px;font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px}
+.screenshot-card .label::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
+.screenshot-single{max-width:1000px;width:100%;border-radius:16px;overflow:hidden;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.screenshot-single img{width:100%;display:block}
+
+/* Table */
+.data-table{width:100%;max-width:1000px;border-collapse:collapse;font-size:14px}
+.data-table th{text-align:left;padding:12px 16px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);font-size:12px;text-transform:uppercase;letter-spacing:0.5px}
+.data-table td{padding:12px 16px;border-bottom:1px solid var(--border)}
+.data-table tr:hover td{background:var(--surface2)}
+.badge-sm{display:inline-block;padding:2px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.badge-blue{background:rgba(99,102,241,0.15);color:var(--primary)}
+.badge-green{background:rgba(52,211,153,0.15);color:var(--green)}
+.badge-orange{background:rgba(251,146,60,0.15);color:var(--orange)}
+.badge-purple{background:rgba(167,139,250,0.15);color:var(--purple)}
+
+/* Timeline */
+.timeline{position:relative;max-width:800px;width:100%}
+.timeline::before{content:'';position:absolute;left:20px;top:0;bottom:0;width:2px;background:var(--border)}
+.timeline-item{display:flex;gap:24px;margin-bottom:32px;align-items:flex-start}
+.timeline-dot{width:12px;height:12px;border-radius:50%;background:var(--primary);margin-top:6px;flex-shrink:0;position:relative;left:15px;z-index:1}
+.timeline-content{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;flex:1}
+.timeline-content h4{font-weight:600;margin-bottom:4px}
+.timeline-content p{font-size:13px;color:var(--muted)}
+
+/* Stats row */
+.stats-row{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+.stat-item{text-align:center}
+.stat-item .value{font-size:2.5rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-item .label{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* Flow diagram */
+.flow-row{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+.flow-box{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;background:var(--surface2);border:1px solid var(--border)}
+.flow-arrow{color:var(--primary);font-size:18px}
+
+/* Footer */
+.footer-slide{background:linear-gradient(135deg,#1a1a2e 0%,#0a0a0f 100%)}
+.footer-slide h2{font-size:3rem;font-weight:800;text-align:center;margin-bottom:24px}
+.footer-slide .links{display:flex;gap:24px;margin-top:32px}
+.footer-slide .links a{padding:12px 24px;border-radius:8px;background:var(--primary);color:#fff;text-decoration:none;font-weight:500;font-size:14px;transition:all .3s}
+.footer-slide .links a:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--primary-glow)}
+
+@media(max-width:768px){
+  .slide{padding:40px 24px}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .screenshot-grid{grid-template-columns:1fr}
+  .arch-flow{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- Navigation dots -->
+<nav class="nav" id="navDots"></nav>
+<div class="slide-counter" id="slideCounter">1 / 14</div>
+<div class="keyboard-hint">Arrow keys to navigate</div>
+
+<!-- SLIDE 1: Title -->
+<section class="slide title-slide" id="s1">
+  <h1>KON ERP/CRM</h1>
+  <p class="subtitle">Hệ thống Quản trị Doanh nghiệp Thông minh tích hợp AI</p>
+  <div class="badge">
+    <span></span> Full-stack AI-Powered Platform
+  </div>
+  <div class="team-info">
+    <strong>Nhom 5 - Cơ sở dữ liệu</strong><br>
+    Đại học Sư phạm Kỹ thuật - Đại học Đà Nẵng<br>
+    Nguyễn Hữu Định (Nhóm trưởng) &bull; Nguyễn Hồng Thuận &bull; Nguyễn Quốc Tuấn<br>
+    Nguyễn Ngọc Viên &bull; Lương Trung Hiếu
+  </div>
+</section>
+
+<!-- SLIDE 2: Overview -->
+<section class="slide" id="s2">
+  <div class="section-header">
+    <span class="tag">Tổng quan</span>
+    <h2>Hệ thống làm được gì?</h2>
+    <p>ERP/CRM thông minh với 5 mô hình ML tự động huấn luyện mỗi 4 giờ</p>
+  </div>
+  <div class="stats-row">
+    <div class="stat-item"><div class="value">5</div><div class="label">ML Models</div></div>
+    <div class="stat-item"><div class="value">38+</div><div class="label">API Endpoints</div></div>
+    <div class="stat-item"><div class="value">650K+</div><div class="label">Records</div></div>
+    <div class="stat-item"><div class="value">24</div><div class="label">Pages</div></div>
+    <div class="stat-item"><div class="value">7</div><div class="label">AI Agent Tools</div></div>
+  </div>
+  <div class="grid-4" style="margin-top:48px">
+    <div class="card">
+      <div class="icon icon-blue">&#128202;</div>
+      <h3>Dashboard Analytics</h3>
+      <p>KPIs, revenue forecast, segmentation, geographic analysis</p>
+    </div>
+    <div class="card">
+      <div class="icon icon-purple">&#129302;</div>
+      <h3>AI Agent</h3>
+      <p>Trợ lý AI với 7 tools, tư vấn chiến lược, phân tích dữ liệu</p>
+    </div>
+    <div class="card">
+      <div class="icon icon-green">&#128200;</div>
+      <h3>ML Predictions</h3>
+      <p>Churn prediction, customer segmentation, engagement scoring</p>
+    </div>
+    <div class="card">
+      <div class="icon icon-orange">&#128736;</div>
+      <h3>Autonomous Loop</h3>
+      <p>OAPA cycle: Observe → Analyze → Plan → Act tự động</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3: Architecture -->
+<section class="slide" id="s3">
+  <div class="section-header">
+    <span class="tag">Kiến trúc</span>
+    <h2>System Architecture</h2>
+    <p>Microservices trên Docker Compose với 4 containers</p>
+  </div>
+  <div class="arch-flow">
+    <div class="arch-box arch-client">&#127760; Browser<br><small>User</small></div>
+    <span class="arch-arrow">&#8594;</span>
+    <div class="arch-box arch-web">&#9883; Next.js 16<br><small>Port 3000</small></div>
+    <span class="arch-arrow">&#8594;</span>
+    <div class="arch-box arch-api">&#9889; FastAPI<br><small>Port 8000</small></div>
+    <span class="arch-arrow">&#8594;</span>
+    <div class="arch-box arch-ai">&#129504; AI Engine<br><small>LangGraph</small></div>
+    <span class="arch-arrow">&#8594;</span>
+    <div class="arch-box arch-data">&#128451; PostgreSQL<br><small>+ pgvector</small></div>
+  </div>
+  <div class="grid-4" style="margin-top:48px">
+    <div class="card">
+      <h3>&#127912; Frontend</h3>
+      <p>React 19, Tailwind 4, Recharts, Framer Motion, shadcn/ui (74 components)</p>
+    </div>
+    <div class="card">
+      <h3>&#9889; Backend</h3>
+      <p>FastAPI, JWT Auth, slowapi rate limiting, SQLAlchemy ORM, Alembic migrations</p>
+    </div>
+    <div class="card">
+      <h3>&#129302; AI/ML</h3>
+      <p>scikit-learn, LangGraph, AWS Bedrock Claude Haiku, Ollama fallback</p>
+    </div>
+    <div class="card">
+      <h3>&#128451; Data</h3>
+      <p>PostgreSQL + pgvector, 3 Kaggle datasets, 20+ tables, vector embeddings 1024-dim</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4: Tech Stack -->
+<section class="slide" id="s4">
+  <div class="section-header">
+    <span class="tag">Công nghệ</span>
+    <h2>Technology Stack</h2>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Frontend</td><td>Next.js 16 + React 19 + Tailwind 4</td><td>SSR, App Router, Turbopack dev</td></tr>
+      <tr><td>UI Library</td><td>shadcn/ui + Radix + Recharts + Motion</td><td>74 components, charts, animations</td></tr>
+      <tr><td>Backend</td><td>FastAPI + Uvicorn</td><td>REST API, async, rate limiting</td></tr>
+      <tr><td>Auth</td><td>JWT + bcrypt</td><td>Token-based authentication</td></tr>
+      <tr><td>Database</td><td>PostgreSQL 16 + pgvector</td><td>OLTP + vector similarity search</td></tr>
+      <tr><td>ORM</td><td>SQLAlchemy + Alembic</td><td>Models + schema migrations</td></tr>
+      <tr><td>ML</td><td>scikit-learn + SHAP</td><td>5 models + explainability</td></tr>
+      <tr><td>AI Agent</td><td>LangGraph + AWS Bedrock</td><td>ReAct agent with 7 tools</td></tr>
+      <tr><td>Embeddings</td><td>Titan Embed v2 / mxbai-embed-large</td><td>1024-dim vector search</td></tr>
+      <tr><td>ETL</td><td>Python + kagglehub + APScheduler</td><td>3 datasets, auto-retrain 4h</td></tr>
+      <tr><td>Containerization</td><td>Docker Compose (4 services)</td><td>One-command deployment</td></tr>
+      <tr><td>CI/CD</td><td>GitHub Actions</td><td>Lint → TypeCheck → Test → E2E</td></tr>
+      <tr><td>Monorepo</td><td>Turborepo</td><td>Workspace management</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- SLIDE 5: Database -->
+<section class="slide" id="s5">
+  <div class="section-header">
+    <span class="tag">Cơ sở dữ liệu</span>
+    <h2>Database Schema</h2>
+    <p>3 tầng dữ liệu từ Kaggle + system tables + ML metadata</p>
+  </div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="icon icon-blue">&#128230;</div>
+      <h3>Olist (ERP Core)</h3>
+      <p><strong>9 tables</strong> &bull; 100K+ orders</p>
+      <p style="margin-top:8px;font-size:12px;color:var(--muted)">orders, order_items, payments, reviews, customers, products, sellers, geolocation, category_translation</p>
+    </div>
+    <div class="card">
+      <div class="icon icon-green">&#128176;</div>
+      <h3>Online Retail</h3>
+      <p><strong>1 table</strong> &bull; 541K transactions</p>
+      <p style="margin-top:8px;font-size:12px;color:var(--muted)">RFM analysis source → K-Means clustering → 5 customer segments</p>
+    </div>
+    <div class="card">
+      <div class="icon icon-orange">&#128680;</div>
+      <h3>E-Commerce Churn</h3>
+      <p><strong>1 table</strong> &bull; 5,630 customers</p>
+      <p style="margin-top:8px;font-size:12px;color:var(--muted)">Real churn labels → Decision Tree + Logistic Regression + pgvector embeddings</p>
+    </div>
+  </div>
+  <div class="grid-2" style="margin-top:24px;max-width:800px">
+    <div class="card">
+      <div class="icon icon-purple">&#128295;</div>
+      <h3>System Tables</h3>
+      <p>users, audit_logs, system_alerts, notifications, campaigns</p>
+    </div>
+    <div class="card">
+      <div class="icon icon-cyan">&#128202;</div>
+      <h3>ML Metadata</h3>
+      <p>ml_model_metrics, ml_recommendations, customer_segments</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6: ETL Pipeline -->
+<section class="slide" id="s6">
+  <div class="section-header">
+    <span class="tag">ETL</span>
+    <h2>Data Pipeline</h2>
+    <p>Extract → Transform → Load → Train (auto mỗi 4 giờ)</p>
+  </div>
+  <div class="flow-row">
+    <div class="flow-box" style="border-color:var(--accent)">&#128230; Kaggle<br><small>3 datasets</small></div>
+    <span class="flow-arrow">&#8594;</span>
+    <div class="flow-box" style="border-color:var(--green)">&#128295; Transform<br><small>Clean + Impute</small></div>
+    <span class="flow-arrow">&#8594;</span>
+    <div class="flow-box" style="border-color:var(--orange)">&#128451; PostgreSQL<br><small>20+ tables</small></div>
+    <span class="flow-arrow">&#8594;</span>
+    <div class="flow-box" style="border-color:var(--purple)">&#129504; ML Train<br><small>5 models</small></div>
+    <span class="flow-arrow">&#8594;</span>
+    <div class="flow-box" style="border-color:var(--primary)">&#128202; Metrics<br><small>Store results</small></div>
+  </div>
+  <div class="grid-3" style="margin-top:40px">
+    <div class="card">
+      <h3>1. Extract</h3>
+      <p><span class="badge-sm badge-blue">kagglehub</span></p>
+      <p style="margin-top:8px;font-size:13px;color:var(--muted)">
+        &bull; olistbr/brazilian-ecommerce<br>
+        &bull; tunguz/online-retail<br>
+        &bull; ankitverma2010/ecommerce-customer-churn
+      </p>
+    </div>
+    <div class="card">
+      <h3>2. Transform</h3>
+      <p><span class="badge-sm badge-green">pandas</span></p>
+      <p style="margin-top:8px;font-size:13px;color:var(--muted)">
+        &bull; Remove negative quantities<br>
+        &bull; NaN imputation (median/mode)<br>
+        &bull; RFM feature engineering<br>
+        &bull; Embedding generation (1024-dim)
+      </p>
+    </div>
+    <div class="card">
+      <h3>3. Load + Train</h3>
+      <p><span class="badge-sm badge-purple">scikit-learn</span></p>
+      <p style="margin-top:8px;font-size:13px;color:var(--muted)">
+        &bull; Bulk INSERT to PostgreSQL<br>
+        &bull; Train 5 ML models<br>
+        &bull; Store predictions back to DB<br>
+        &bull; APScheduler (4h cycle)
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7: ML Models -->
+<section class="slide" id="s7">
+  <div class="section-header">
+    <span class="tag">Machine Learning</span>
+    <h2>5 ML Models</h2>
+    <p>Tự động retrain mỗi 4 giờ với full evaluation metrics</p>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr><th>Model</th><th>Algorithm</th><th>Input</th><th>Output</th><th>Metrics</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Customer Segmentation</strong></td>
+        <td><span class="badge-sm badge-blue">K-Means (k=5)</span></td>
+        <td>RFM scores (4,300 customers)</td>
+        <td>5 segments: VIP, Loyal, Regular, At Risk, Lost</td>
+        <td>Silhouette, Inertia</td>
+      </tr>
+      <tr>
+        <td><strong>Engagement Prediction</strong></td>
+        <td><span class="badge-sm badge-green">Decision Tree + GridSearchCV</span></td>
+        <td>13 features from churn dataset</td>
+        <td>Low / Medium / High / VIP + confidence</td>
+        <td>Accuracy, F1, Feature Importance</td>
+      </tr>
+      <tr>
+        <td><strong>Churn Prediction</strong></td>
+        <td><span class="badge-sm badge-orange">Logistic Regression</span></td>
+        <td>13 numeric + categorical features</td>
+        <td>Churn probability (0-100%) + risk level</td>
+        <td>ROC-AUC, Precision, Recall, SHAP</td>
+      </tr>
+      <tr>
+        <td><strong>Revenue Forecast</strong></td>
+        <td><span class="badge-sm badge-purple">Linear Regression</span></td>
+        <td>Monthly revenue time series</td>
+        <td>Next 3 months prediction</td>
+        <td>R-squared, MAE</td>
+      </tr>
+      <tr>
+        <td><strong>Product Recommendations</strong></td>
+        <td><span class="badge-sm badge-blue">Collaborative Filtering</span></td>
+        <td>Olist co-purchase patterns</td>
+        <td>Top 3 product suggestions</td>
+        <td>Confidence score</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- SLIDE 8: AI Agent -->
+<section class="slide" id="s8">
+  <div class="section-header">
+    <span class="tag">AI Agent</span>
+    <h2>LangGraph ReAct Agent</h2>
+    <p>Trợ lý AI với 7 công cụ chuyên biệt, trả lời bằng tiếng Việt</p>
+  </div>
+  <div class="grid-2">
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <h3>&#129504; LLM Configuration</h3>
+        <p style="margin-top:8px"><strong>Primary:</strong> AWS Bedrock Claude Haiku 3.5</p>
+        <p><strong>Fallback:</strong> Ollama qwen2.5 (7B, local)</p>
+        <p><strong>Embeddings:</strong> Titan Embed v2 (1024-dim)</p>
+        <p><strong>Framework:</strong> LangGraph with ReAct pattern</p>
+      </div>
+      <div class="card">
+        <h3>&#128260; Autonomous Loop (OAPA)</h3>
+        <p style="margin-top:8px;font-size:13px;color:var(--muted)">
+          <strong>Observe</strong> — Scan database for anomalies<br>
+          <strong>Analyze</strong> — Identify high-risk customers<br>
+          <strong>Plan</strong> — Generate campaign strategies<br>
+          <strong>Act</strong> — Create draft campaigns + notifications
+        </p>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3>&#128736; 7 Agent Tools</h3>
+        <div style="margin-top:12px;font-size:13px">
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)"><span class="badge-sm badge-blue">query_database</span> &mdash; Read-only SQL (50 row limit)</div>
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)"><span class="badge-sm badge-green">get_customer_profile</span> &mdash; Full profile + churn risk</div>
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)"><span class="badge-sm badge-orange">get_churn_risk_summary</span> &mdash; Aggregate churn stats</div>
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)"><span class="badge-sm badge-purple">get_product_recommendations</span> &mdash; Collaborative filtering</div>
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)"><span class="badge-sm badge-blue">get_revenue_insights</span> &mdash; Monthly trends + forecast</div>
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)"><span class="badge-sm badge-green">suggest_campaign</span> &mdash; Segment-based campaigns</div>
+          <div style="padding:8px 0"><span class="badge-sm badge-orange">search_similar_customers</span> &mdash; pgvector cosine search</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 9: Storefront Screenshots -->
+<section class="slide" id="s9">
+  <div class="section-header">
+    <span class="tag">Giao diện</span>
+    <h2>Storefront (Public)</h2>
+    <p>Trang mua sắm công khai cho khách hàng</p>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot-card"><img src="screenshots/01-homepage.png" alt="Homepage"><div class="label">Trang chủ</div></div>
+    <div class="screenshot-card"><img src="screenshots/02-products.png" alt="Products"><div class="label">Sản phẩm</div></div>
+    <div class="screenshot-card"><img src="screenshots/03-login.png" alt="Login"><div class="label">Đăng nhập</div></div>
+    <div class="screenshot-card"><img src="screenshots/22-register.png" alt="Register"><div class="label">Đăng ký</div></div>
+    <div class="screenshot-card"><img src="screenshots/23-categories.png" alt="Categories"><div class="label">Danh mục</div></div>
+    <div class="screenshot-card"><img src="screenshots/24-deals.png" alt="Deals"><div class="label">Khuyến mãi</div></div>
+  </div>
+</section>
+
+<!-- SLIDE 10: Dashboard Screenshots -->
+<section class="slide" id="s10">
+  <div class="section-header">
+    <span class="tag">Giao diện</span>
+    <h2>Admin Dashboard</h2>
+    <p>Bảng điều khiển quản trị với KPIs và analytics</p>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot-card"><img src="screenshots/04-dashboard.png" alt="Dashboard"><div class="label">Dashboard chính (KPIs)</div></div>
+    <div class="screenshot-card"><img src="screenshots/08-analytics.png" alt="Analytics"><div class="label">MDX Analytics</div></div>
+    <div class="screenshot-card"><img src="screenshots/17-revenue-analytics.png" alt="Revenue"><div class="label">Revenue Forecast</div></div>
+    <div class="screenshot-card"><img src="screenshots/09-customers.png" alt="Customers"><div class="label">Quản lý khách hàng</div></div>
+    <div class="screenshot-card"><img src="screenshots/10-orders.png" alt="Orders"><div class="label">Quản lý đơn hàng</div></div>
+    <div class="screenshot-card"><img src="screenshots/11-admin-products.png" alt="Products"><div class="label">Quản lý sản phẩm</div></div>
+  </div>
+</section>
+
+<!-- SLIDE 11: AI & ML Screenshots -->
+<section class="slide" id="s11">
+  <div class="section-header">
+    <span class="tag">Giao diện</span>
+    <h2>AI Agent & ML Predictions</h2>
+    <p>Trí tuệ nhân tạo và dự đoán machine learning</p>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot-card"><img src="screenshots/07-agent-chat.png" alt="Agent"><div class="label">AI Agent Chat</div></div>
+    <div class="screenshot-card"><img src="screenshots/12-predictions.png" alt="Predictions"><div class="label">ML Predictions Overview</div></div>
+    <div class="screenshot-card"><img src="screenshots/13-clustering.png" alt="Clustering"><div class="label">K-Means Segmentation</div></div>
+    <div class="screenshot-card"><img src="screenshots/14-decision-tree.png" alt="Decision Tree"><div class="label">Decision Tree</div></div>
+    <div class="screenshot-card"><img src="screenshots/15-logistic-regression.png" alt="Logistic"><div class="label">Logistic Regression (Churn)</div></div>
+    <div class="screenshot-card"><img src="screenshots/16-compare.png" alt="Compare"><div class="label">Model Comparison</div></div>
+  </div>
+</section>
+
+<!-- SLIDE 12: More Features Screenshots -->
+<section class="slide" id="s12">
+  <div class="section-header">
+    <span class="tag">Giao diện</span>
+    <h2>Tính năng khác</h2>
+    <p>Campaigns, notifications, search, settings</p>
+  </div>
+  <div class="screenshot-grid">
+    <div class="screenshot-card"><img src="screenshots/05-campaigns.png" alt="Campaigns"><div class="label">Campaigns (AI-generated)</div></div>
+    <div class="screenshot-card"><img src="screenshots/06-notifications.png" alt="Notifications"><div class="label">Notifications</div></div>
+    <div class="screenshot-card"><img src="screenshots/20-search.png" alt="Search"><div class="label">Semantic Search (pgvector)</div></div>
+    <div class="screenshot-card"><img src="screenshots/21-settings.png" alt="Settings"><div class="label">Settings</div></div>
+    <div class="screenshot-card"><img src="screenshots/25-checkout.png" alt="Checkout"><div class="label">Checkout</div></div>
+    <div class="screenshot-card"><img src="screenshots/27-track-order.png" alt="Track"><div class="label">Track Order</div></div>
+  </div>
+</section>
+
+<!-- SLIDE 13: DevOps -->
+<section class="slide" id="s13">
+  <div class="section-header">
+    <span class="tag">DevOps</span>
+    <h2>Deployment & CI/CD</h2>
+    <p>Docker Compose + GitHub Actions</p>
+  </div>
+  <div class="grid-2">
+    <div>
+      <div class="screenshot-card" style="border-radius:12px;overflow:hidden;border:1px solid var(--border)">
+        <img src="screenshots/19-docker-compose.png" alt="Docker" style="height:auto">
+        <div class="label">Docker Compose (4 services)</div>
+      </div>
+    </div>
+    <div>
+      <div class="screenshot-card" style="border-radius:12px;overflow:hidden;border:1px solid var(--border)">
+        <img src="screenshots/18-github-actions.png" alt="CI/CD" style="height:auto">
+        <div class="label">GitHub Actions CI/CD</div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-4" style="margin-top:32px">
+    <div class="card">
+      <h3>&#128051; Docker</h3>
+      <p>4 containers: db, worker, api, web trên kon_network bridge</p>
+    </div>
+    <div class="card">
+      <h3>&#9889; CI Pipeline</h3>
+      <p>Lint → TypeCheck → Pytest → Playwright E2E</p>
+    </div>
+    <div class="card">
+      <h3>&#128260; Auto-Train</h3>
+      <p>APScheduler retrain 5 models mỗi 4 giờ</p>
+    </div>
+    <div class="card">
+      <h3>&#128272; Security</h3>
+      <p>JWT auth, rate limiting, CORS, input validation</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 14: Thank you -->
+<section class="slide footer-slide" id="s14">
+  <h2>&#127891; Cảm ơn thầy đã lắng nghe!</h2>
+  <p style="color:var(--muted);font-size:1.1rem;margin-top:8px">KON ERP/CRM &mdash; Hệ thống Quản trị Doanh nghiệp Thông minh</p>
+  <div class="stats-row" style="margin-top:40px">
+    <div class="stat-item"><div class="value">Next.js 16</div><div class="label">Frontend</div></div>
+    <div class="stat-item"><div class="value">FastAPI</div><div class="label">Backend</div></div>
+    <div class="stat-item"><div class="value">5 Models</div><div class="label">ML</div></div>
+    <div class="stat-item"><div class="value">LangGraph</div><div class="label">AI Agent</div></div>
+  </div>
+  <div class="team-info" style="margin-top:48px">
+    <strong>Nhom 5</strong><br>
+    Nguyễn Hữu Định &bull; Nguyễn Hồng Thuận &bull; Nguyễn Quốc Tuấn &bull; Nguyễn Ngọc Viên &bull; Lương Trung Hiếu<br>
+    <span style="color:var(--primary)">GVHD: [Tên giáo viên]</span>
+  </div>
+</section>
+
+<script>
+// Navigation
+const slides = document.querySelectorAll('.slide');
+const navContainer = document.getElementById('navDots');
+const counter = document.getElementById('slideCounter');
+
+slides.forEach((_, i) => {
+  const dot = document.createElement('a');
+  dot.href = '#s' + (i + 1);
+  navContainer.appendChild(dot);
+});
+
+const dots = navContainer.querySelectorAll('a');
+
+function updateNav() {
+  const scrollPos = window.scrollY + window.innerHeight / 2;
+  let current = 0;
+  slides.forEach((s, i) => {
+    if (scrollPos >= s.offsetTop) current = i;
+  });
+  dots.forEach((d, i) => d.classList.toggle('active', i === current));
+  counter.textContent = (current + 1) + ' / ' + slides.length;
+}
+
+window.addEventListener('scroll', updateNav);
+updateNav();
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  const scrollPos = window.scrollY + window.innerHeight / 2;
+  let current = 0;
+  slides.forEach((s, i) => { if (scrollPos >= s.offsetTop) current = i; });
+
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+    e.preventDefault();
+    if (current < slides.length - 1) slides[current + 1].scrollIntoView({ behavior: 'smooth' });
+  } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    if (current > 0) slides[current - 1].scrollIntoView({ behavior: 'smooth' });
+  }
+});
+</script>
+</body>
+</html>

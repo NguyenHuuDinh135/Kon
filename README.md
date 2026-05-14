@@ -139,7 +139,7 @@
 
 ---
 
-## API Endpoints (30+)
+## API Endpoints (38+)
 
 ### Auth
 | Method | Endpoint | Description |
@@ -163,6 +163,8 @@
 | GET | /analytics/mdx/churn-by-demographics | Churn rate by age x gender |
 | GET | /analytics/mdx/spending-distribution | Spending stats by category |
 | GET | /analytics/clv | Customer lifetime value |
+| GET | /analytics/clv-by-segment | CLV aggregated by RFM cluster |
+| GET | /analytics/geographic-stats | Revenue and customer count by state |
 | GET | /analytics/rfm-scores | RFM analysis results |
 | GET | /analytics/forecast | Revenue forecast |
 
@@ -321,7 +323,7 @@ npm run lint
 ruff check apps/ packages/
 ```
 
-**E2E Status**: 12/12 tests passing (auth, dashboard, predictions, analytics, campaigns, notifications)
+**E2E Status**: 24/24 tests passing (auth, dashboard, predictions, analytics, campaigns, notifications, storefront, admin CRUD)
 
 ---
 
@@ -401,4 +403,4 @@ Kon/
 | AI/ML | scikit-learn, LangGraph, **Ollama (qwen2.5:7B)** for chat, **nomic-embed-text** for embeddings, Google Gemini (fallback), SHAP |
 | Database | PostgreSQL, pgvector |
 | DevOps | Docker, Turborepo, APScheduler |
-| Testing | Playwright (12/12 E2E passing), pytest, Vitest |
+| Testing | Playwright (24/24 E2E passing), pytest, Vitest |

@@ -1,13 +1,68 @@
+# Dependencies & build artifacts
 node_modules
 .next
+.next_old
+apps/web/.next
+apps/web/.next_old
+apps/web/node_modules
+
+# Version control
 .git
+.gitignore
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Infrastructure artifacts
+tfplan
+*.tfstate*
+
+# Documentation & reports (not needed at runtime)
 *.md
-.env*
-terraform/
-notebooks/
-scripts/
+*.doc
+*.docx
+*.pdf
+BaoCao_CCSDL_Nhom5.docx
+MAUBAOCAOCCSDL.doc
+
+# IDE & editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing artifacts
 playwright-report/
 test-results/
-__pycache__
+apps/web/test-results/
+coverage/
+.nyc_output/
+
+# Python artifacts
+__pycache__/
 *.pyc
-.pytest_cache
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Claude & AI tooling
+.claude/
+
+# Dev-only files
+apps/web/Dockerfile.dev
+docker-compose.override.yml
+
+# Notebooks & scripts not needed in production
+notebooks/
+scripts/
+
+# OS files
+.DS_Store
+Thumbs.db
