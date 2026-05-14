@@ -46,6 +46,8 @@ jobs:
       run: pytest packages/ai-engine/tests/ apps/api/tests/ -v
       env:
         PYTHONPATH: packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers:apps/api
+        JWT_SECRET_KEY: test-secret-key-for-ci-at-least-32chars
+        DATABASE_URL: sqlite:///test.db
 
   test:
     timeout-minutes: 20
