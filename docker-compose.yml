@@ -35,6 +35,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-nguyenhuudinh}:${DB_PASSWORD:-kon_password}@db:5432/${DB_NAME:-kon_erp_northwind}
       - PYTHONPATH=/app/packages/db-core:/app/packages/shared:/app/packages/ai-engine:/app/packages/mcp-servers
+      - PYTHONUNBUFFERED=1
       - AWS_REGION=${AWS_REGION:-us-west-2}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
@@ -68,6 +69,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-nguyenhuudinh}:${DB_PASSWORD:-kon_password}@db:5432/${DB_NAME:-kon_erp_northwind}
       - PYTHONPATH=/app/packages/db-core:/app/packages/shared:/app/packages/ai-engine:/app/packages/mcp-servers:/app/apps/api
+      - PYTHONUNBUFFERED=1
       - AWS_REGION=${AWS_REGION:-us-west-2}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}

@@ -12,7 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/db-core"
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/shared"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/ai-engine"))
 
-from db_core import engine, init_vector_extension
+from db_core import engine, init_vector_extension, Base
 from ai_engine.ml_models import run_all_ml_tasks
 from ai_engine.autonomous_loop import run_autonomous_cycle
 
@@ -22,6 +22,7 @@ def wait_for_db():
     for i in range(max_retries):
         try:
             init_vector_extension()
+            Base.metadata.create_all(bind=engine)
             return True
         except OperationalError:
             if i == max_retries - 1:

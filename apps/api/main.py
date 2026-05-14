@@ -23,7 +23,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/shared")
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../packages/ai-engine"))
 
 from db_core import get_db
-from db_core.database import engine
+from db_core.database import engine, Base
 from db_core.models import Customer, Order, OrderItem, User, Product
 from shared import (
     Customer as SharedCustomer,
@@ -32,7 +32,7 @@ from shared import (
 )
 from ai_engine.agent import run_agent, stream_agent
 from fastapi.middleware.cors import CORSMiddleware
-from auth import get_current_user, require_admin
+from auth import get_current_user, require_admin, get_password_hash
 
 from routers.auth import router as auth_router
 from routers.predictions import router as predictions_router
@@ -79,6 +79,35 @@ app.include_router(analytics_router, tags=["analytics"])
 app.include_router(notifications_router)
 app.include_router(campaigns_router)
 app.include_router(search_router)
+
+
+@app.on_event("startup")
+def on_startup():
+    from db_core.models import (
+        User, AuditLog, SystemAlert, Notification, Campaign,
+        MLRecommendation, MLModelMetrics
+    )
+    Base.metadata.create_all(bind=engine)
+    from sqlalchemy.orm import Session
+    db = next(get_db())
+    try:
+        if not db.query(User).filter(User.username == "admin").first():
+            db.add(User(
+                username="admin",
+                email="admin@kon.ai",
+                hashed_password=get_password_hash("admin123"),
+                role="admin",
+            ))
+        if not db.query(User).filter(User.username == "client").first():
+            db.add(User(
+                username="client",
+                email="client@kon.ai",
+                hashed_password=get_password_hash("client123"),
+                role="client",
+            ))
+        db.commit()
+    finally:
+        db.close()
 
 
 @app.get("/")

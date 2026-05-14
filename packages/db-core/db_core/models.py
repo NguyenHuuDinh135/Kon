@@ -173,7 +173,7 @@ class CustomerChurn(Base):
     OrderCount = Column(Float, nullable=True)
     DaySinceLastOrder = Column(Float, nullable=True)
     CashbackAmount = Column(Float, nullable=True)
-    embedding = Column(Vector(768), nullable=True)
+    embedding = Column(Vector(1024), nullable=True)
 
 
 # ==================== ML RESULTS ====================
