@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KON ERP/CRM — Báo cáo trình bày</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#09090b;
+  --surface:#18181b;
+  --surface2:#27272a;
+  --border:#3f3f46;
+  --text:#fafafa;
+  --muted:#a1a1aa;
+  --primary:#6366f1;
+  --accent:#22d3ee;
+  --green:#34d399;
+  --orange:#fb923c;
+  --purple:#a78bfa;
+  --red:#f87171;
+  --pink:#f472b6;
+}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
+
+/* Slide base */
+.slide{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:48px 64px;position:relative}
+
+/* Navigation */
+.nav{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:1000;display:flex;flex-direction:column;gap:6px}
+.nav a{width:8px;height:8px;border-radius:50%;background:var(--border);display:block;transition:all .3s}
+.nav a.active{background:var(--primary);box-shadow:0 0 8px var(--primary)}
+.slide-num{position:fixed;bottom:20px;right:24px;font-size:12px;color:var(--muted);z-index:1000;font-variant-numeric:tabular-nums}
+.keys{position:fixed;bottom:20px;left:24px;font-size:11px;color:var(--muted);z-index:1000;opacity:.5}
+
+/* Title slide */
+.title-slide{background:radial-gradient(ellipse at 50% 30%,rgba(99,102,241,0.12) 0%,transparent 60%)}
+.title-slide h1{font-size:clamp(2.5rem,6vw,5rem);font-weight:900;background:linear-gradient(135deg,#fff 30%,var(--primary) 70%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;letter-spacing:-2px}
+.title-slide .sub{font-size:1.3rem;color:var(--muted);margin-top:12px;text-align:center}
+.title-slide .meta{margin-top:40px;text-align:center;color:var(--muted);font-size:14px;line-height:2}
+
+/* Section headers */
+.section-tag{display:inline-block;padding:4px 14px;border-radius:100px;background:var(--primary);color:#fff;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px}
+.section-title{font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:800;color:#fff;text-align:center;letter-spacing:-1px;margin-bottom:8px}
+.section-desc{color:var(--muted);text-align:center;font-size:1rem;max-width:650px;margin:0 auto 32px}
+
+/* Screenshot with annotations */
+.screenshot-block{width:100%;max-width:1100px;margin:24px auto}
+.screenshot-frame{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.screenshot-frame img{width:100%;display:block}
+.screenshot-caption{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.caption-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.caption-item .num{width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-right:8px}
+.caption-item h4{display:inline;font-size:14px;font-weight:600}
+.caption-item p{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
+
+/* Two column layout */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:32px;width:100%;max-width:1100px;align-items:start}
+.two-col .screenshot-frame{margin:0}
+.two-col .explain{padding:8px 0}
+.two-col .explain h3{font-size:1.3rem;font-weight:700;margin-bottom:12px}
+.two-col .explain p{color:var(--muted);font-size:14px;margin-bottom:12px;line-height:1.6}
+.two-col .explain ul{list-style:none;padding:0}
+.two-col .explain ul li{padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted)}
+.two-col .explain ul li::before{content:'→';color:var(--primary);margin-right:8px;font-weight:700}
+
+/* Stats bar */
+.stats-bar{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;margin:32px 0}
+.stat{text-align:center}
+.stat .val{font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat .lbl{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* Architecture */
+.arch{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:24px 0}
+.arch-box{padding:14px 22px;border-radius:10px;text-align:center;font-weight:600;font-size:13px;border:1px solid;min-width:120px}
+.arch-arrow{color:var(--muted);font-size:20px}
+
+/* Tech grid */
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;width:100%;max-width:1000px}
+.tech-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px}
+.tech-item strong{display:block;color:#fff;margin-bottom:2px}
+.tech-item span{color:var(--muted)}
+
+/* Footer */
+.footer-slide h2{font-size:2.5rem;font-weight:800;text-align:center}
+
+@media(max-width:900px){
+  .slide{padding:32px 20px}
+  .two-col{grid-template-columns:1fr}
+  .screenshot-caption{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav"></nav>
+<div class="slide-num" id="counter">1 / 20</div>
+<div class="keys">← → hoặc Space để chuyển slide</div>
+
+<!-- ========== SLIDE 1: Title ========== -->
+<section class="slide title-slide" id="s1">
+  <h1>KON ERP/CRM</h1>
+  <p class="sub">Hệ thống Quản trị Doanh nghiệp Thông minh<br>tích hợp Machine Learning và AI Agent</p>
+  <div class="meta">
+    <strong>Nhóm 5 — Cơ sở dữ liệu</strong><br>
+    Đại học Sư phạm Kỹ thuật — Đại học Đà Nẵng<br><br>
+    Nguyễn Hữu Định (Nhóm trưởng) &bull; Trần Hiền &bull; Trần Xuân Trường<br>
+    Nguyễn Minh Tuệ &bull; Nguyễn Quang Vinh
+  </div>
+</section>
+
+<!-- ========== SLIDE 2: Overview ========== -->
+<section class="slide" id="s2">
+  <span class="section-tag">Tổng quan</span>
+  <h2 class="section-title">Hệ thống làm được gì?</h2>
+  <p class="section-desc">Nền tảng ERP/CRM thông minh tự động phân tích hành vi, dự đoán churn, và đề xuất chiến lược kinh doanh bằng AI.</p>
+  <div class="stats-bar">
+    <div class="stat"><div class="val">5</div><div class="lbl">ML Models</div></div>
+    <div class="stat"><div class="val">38+</div><div class="lbl">API Endpoints</div></div>
+    <div class="stat"><div class="val">650K+</div><div class="lbl">Bản ghi dữ liệu</div></div>
+    <div class="stat"><div class="val">24</div><div class="lbl">Trang giao diện</div></div>
+    <div class="stat"><div class="val">7</div><div class="lbl">Agent Tools</div></div>
+    <div class="stat"><div class="val">4h</div><div class="lbl">Auto Retrain</div></div>
+  </div>
+  <div class="arch">
+    <div class="arch-box" style="background:rgba(34,211,238,0.1);border-color:rgba(34,211,238,0.4);color:var(--accent)">Browser</div>
+    <span class="arch-arrow">→</span>
+    <div class="arch-box" style="background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.4);color:var(--primary)">Next.js 16<br><small>:3000</small></div>
+    <span class="arch-arrow">→</span>
+    <div class="arch-box" style="background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.4);color:var(--green)">FastAPI<br><small>:8000</small></div>
+    <span class="arch-arrow">→</span>
+    <div class="arch-box" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.4);color:var(--purple)">AI Engine<br><small>LangGraph</small></div>
+    <span class="arch-arrow">→</span>
+    <div class="arch-box" style="background:rgba(251,146,60,0.1);border-color:rgba(251,146,60,0.4);color:var(--orange)">PostgreSQL<br><small>pgvector</small></div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 3: Storefront - Homepage ========== -->
+<section class="slide" id="s3">
+  <span class="section-tag">Storefront</span>
+  <h2 class="section-title">Trang chủ cửa hàng</h2>
+  <div class="screenshot-block">
+    <div class="screenshot-frame"><img src="screenshots/01-homepage.png" alt="Homepage"></div>
+    <div class="screenshot-caption">
+      <div class="caption-item"><span class="num">1</span><h4>Navigation Bar</h4><p>Menu điều hướng chính: Trang chủ, Sản phẩm, Danh mục, Khuyến mãi. Có thanh tìm kiếm và nút đăng nhập.</p></div>
+      <div class="caption-item"><span class="num">2</span><h4>Hero Banner</h4><p>Banner giới thiệu hệ thống với CTA "Khám phá ngay". Thu hút người dùng vào luồng mua sắm chính.</p></div>
+      <div class="caption-item"><span class="num">3</span><h4>Sản phẩm nổi bật</h4><p>Grid hiển thị sản phẩm trending, kéo từ API endpoint <code>/products</code>. Mỗi card có ảnh, tên, giá.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 4: Storefront - Products ========== -->
+<section class="slide" id="s4">
+  <span class="section-tag">Storefront</span>
+  <h2 class="section-title">Danh sách sản phẩm</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/02-products.png" alt="Products"></div>
+      <div class="explain">
+        <h3>Trang sản phẩm</h3>
+        <p>Hiển thị toàn bộ catalog sản phẩm với khả năng tìm kiếm và lọc theo danh mục.</p>
+        <ul>
+          <li>Tìm kiếm realtime theo tên sản phẩm</li>
+          <li>Lọc theo category (Electronics, Fashion, Home...)</li>
+          <li>Responsive grid: 1→2→3→4 cột theo viewport</li>
+          <li>Lazy loading ảnh (performance optimization)</li>
+          <li>Gọi API: <code>GET /products?search=&limit=50</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 5: Login ========== -->
+<section class="slide" id="s5">
+  <span class="section-tag">Xác thực</span>
+  <h2 class="section-title">Đăng nhập & Phân quyền</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/03-login.png" alt="Login"></div>
+      <div class="explain">
+        <h3>Hệ thống xác thực JWT</h3>
+        <p>Bảo mật bằng JSON Web Token với bcrypt password hashing.</p>
+        <ul>
+          <li>Form đăng nhập: username + password</li>
+          <li>API: <code>POST /auth/login</code> → trả về JWT token</li>
+          <li>Token lưu localStorage + cookie (SSR support)</li>
+          <li>2 role: Admin (full dashboard) và Client (storefront)</li>
+          <li>Rate limiting: 5 lần/phút chống brute-force</li>
+          <li>Middleware redirect: chưa login → /login</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 6: Dashboard Main ========== -->
+<section class="slide" id="s6">
+  <span class="section-tag">Dashboard</span>
+  <h2 class="section-title">Bảng điều khiển chính</h2>
+  <div class="screenshot-block">
+    <div class="screenshot-frame"><img src="screenshots/04-dashboard.png" alt="Dashboard"></div>
+    <div class="screenshot-caption">
+      <div class="caption-item"><span class="num">1</span><h4>KPI Cards</h4><p>4 chỉ số chính realtime: Tổng khách hàng, Tổng đơn hàng, Doanh thu, Tỷ lệ churn. Dữ liệu từ API <code>/dashboard/kpis</code>.</p></div>
+      <div class="caption-item"><span class="num">2</span><h4>Revenue Chart</h4><p>Biểu đồ doanh thu theo tháng (Area Chart). Hiển thị trend tăng/giảm. API: <code>/dashboard/revenue-over-time</code>.</p></div>
+      <div class="caption-item"><span class="num">3</span><h4>Customer Segments</h4><p>Phân bố 5 nhóm khách hàng (VIP, Loyal, Regular, At Risk, Lost) từ kết quả K-Means clustering.</p></div>
+      <div class="caption-item"><span class="num">4</span><h4>Sidebar Navigation</h4><p>Menu điều hướng admin: Dashboard, Analytics, Customers, Orders, Products, Campaigns, Agent, Predictions.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 7: Analytics ========== -->
+<section class="slide" id="s7">
+  <span class="section-tag">Analytics</span>
+  <h2 class="section-title">Phân tích đa chiều (MDX)</h2>
+  <div class="screenshot-block">
+    <div class="screenshot-frame"><img src="screenshots/08-analytics.png" alt="Analytics"></div>
+    <div class="screenshot-caption">
+      <div class="caption-item"><span class="num">1</span><h4>Revenue by Segment</h4><p>Doanh thu phân theo vùng địa lý (customer_state). Phân tích MDX nhiều chiều: vùng × thời gian × segment.</p></div>
+      <div class="caption-item"><span class="num">2</span><h4>Churn by Demographics</h4><p>Tỷ lệ churn theo giới tính, thiết bị đăng nhập, tier thành phố. Giúp xác định nhóm rủi ro cao.</p></div>
+      <div class="caption-item"><span class="num">3</span><h4>Spending Distribution</h4><p>Phân bố chi tiêu theo danh mục yêu thích (PreferedOrderCat). Box plot hiển thị median, Q1, Q3.</p></div>
+      <div class="caption-item"><span class="num">4</span><h4>Geographic Heatmap</h4><p>Bản đồ nhiệt doanh thu + churn rate theo bang. Tooltip hiển thị chi tiết khi hover.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 8: Revenue Forecast ========== -->
+<section class="slide" id="s8">
+  <span class="section-tag">Machine Learning</span>
+  <h2 class="section-title">Dự báo doanh thu (Linear Regression)</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/17-revenue-analytics.png" alt="Revenue Forecast"></div>
+      <div class="explain">
+        <h3>Revenue Forecast Chart</h3>
+        <p>Dự phóng doanh thu 3 tháng tiếp theo bằng hồi quy tuyến tính trên dữ liệu Olist.</p>
+        <ul>
+          <li><strong>Đường solid (xanh):</strong> Doanh thu thực tế (historical)</li>
+          <li><strong>Đường dashed (cam):</strong> Dự báo 3 tháng tới</li>
+          <li>Model: LinearRegression trên monthly aggregated revenue</li>
+          <li>Metric: R² score hiển thị trên chart</li>
+          <li>API: <code>GET /analytics/forecast</code></li>
+          <li>Auto-retrain mỗi 4 giờ → forecast luôn cập nhật</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 9: Clustering ========== -->
+<section class="slide" id="s9">
+  <span class="section-tag">Machine Learning</span>
+  <h2 class="section-title">Phân nhóm khách hàng (K-Means)</h2>
+  <div class="screenshot-block">
+    <div class="screenshot-frame"><img src="screenshots/13-clustering.png" alt="Clustering"></div>
+    <div class="screenshot-caption">
+      <div class="caption-item"><span class="num">1</span><h4>Scatter Plot RFM</h4><p>Biểu đồ phân tán 3D: Recency × Frequency × Monetary. Mỗi màu = 1 cluster. 4,300+ khách hàng được phân thành 5 nhóm.</p></div>
+      <div class="caption-item"><span class="num">2</span><h4>5 Segments</h4><p><strong>VIP</strong> (high F+M, low R), <strong>Loyal</strong> (medium-high), <strong>Regular</strong> (trung bình), <strong>At Risk</strong> (tăng R), <strong>Lost</strong> (rất cao R, thấp F).</p></div>
+      <div class="caption-item"><span class="num">3</span><h4>Cluster Statistics</h4><p>Bảng thống kê mỗi cluster: số lượng, RFM trung bình, silhouette score. API: <code>GET /predictions/clustering</code>.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 10: Decision Tree ========== -->
+<section class="slide" id="s10">
+  <span class="section-tag">Machine Learning</span>
+  <h2 class="section-title">Dự đoán Engagement (Decision Tree)</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/14-decision-tree.png" alt="Decision Tree"></div>
+      <div class="explain">
+        <h3>Decision Tree + GridSearchCV</h3>
+        <p>Phân loại mức độ tương tác khách hàng thành 4 level.</p>
+        <ul>
+          <li><strong>Output:</strong> Low / Medium / High / VIP engagement</li>
+          <li><strong>Features:</strong> Tenure, Satisfaction, DeviceRegistered, WarehouseToHome...</li>
+          <li><strong>Tuning:</strong> GridSearchCV trên max_depth, min_samples</li>
+          <li><strong>Feature Importance:</strong> Bar chart hiển thị feature nào ảnh hưởng nhất</li>
+          <li><strong>Confusion Matrix:</strong> Ma trận nhầm lẫn đánh giá accuracy</li>
+          <li>API: <code>GET /predictions/decision-tree</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 11: Logistic Regression ========== -->
+<section class="slide" id="s11">
+  <span class="section-tag">Machine Learning</span>
+  <h2 class="section-title">Dự đoán Churn (Logistic Regression)</h2>
+  <div class="screenshot-block">
+    <div class="screenshot-frame"><img src="screenshots/15-logistic-regression.png" alt="Logistic Regression"></div>
+    <div class="screenshot-caption">
+      <div class="caption-item"><span class="num">1</span><h4>Churn Probability</h4><p>Mỗi khách hàng có xác suất rời bỏ 0-100%. Phân 3 mức: HIGH (>70%), MEDIUM (30-70%), LOW (<30%). Dữ liệu huấn luyện: 5,630 khách có label thực.</p></div>
+      <div class="caption-item"><span class="num">2</span><h4>ROC Curve</h4><p>Đường cong ROC đánh giá khả năng phân biệt churn/không churn. AUC càng gần 1 càng tốt. Hiển thị realtime sau mỗi lần retrain.</p></div>
+      <div class="caption-item"><span class="num">3</span><h4>SHAP Values</h4><p>Giải thích AI: feature nào đóng góp nhiều nhất vào dự đoán churn? Tenure, DaySinceLastOrder, Complain thường top 3.</p></div>
+      <div class="caption-item"><span class="num">4</span><h4>Risk Distribution</h4><p>Biểu đồ phân bố số lượng khách theo mức rủi ro. Cảnh báo tự động khi nhóm HIGH tăng đột biến.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 12: Model Comparison ========== -->
+<section class="slide" id="s12">
+  <span class="section-tag">Machine Learning</span>
+  <h2 class="section-title">So sánh các mô hình ML</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/16-compare.png" alt="Compare"></div>
+      <div class="explain">
+        <h3>Model Comparison Dashboard</h3>
+        <p>So sánh kết quả dự đoán của tất cả ML models cho từng khách hàng.</p>
+        <ul>
+          <li><strong>K-Means:</strong> Khách thuộc cluster nào (VIP→Lost)</li>
+          <li><strong>Decision Tree:</strong> Engagement level + confidence %</li>
+          <li><strong>Logistic Regression:</strong> Churn probability %</li>
+          <li>Bảng so sánh side-by-side cho mỗi CustomerID</li>
+          <li>Metrics tổng hợp: Accuracy, F1, ROC-AUC của từng model</li>
+          <li>API: <code>GET /predictions/compare</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 13: AI Agent ========== -->
+<section class="slide" id="s13">
+  <span class="section-tag">AI Agent</span>
+  <h2 class="section-title">Trợ lý AI Agent (LangGraph)</h2>
+  <div class="screenshot-block">
+    <div class="screenshot-frame"><img src="screenshots/07-agent-chat.png" alt="Agent Chat"></div>
+    <div class="screenshot-caption">
+      <div class="caption-item"><span class="num">1</span><h4>Chat Interface</h4><p>Giao diện chat realtime với AI. Hỗ trợ Markdown, bảng, code. Streaming response (hiển thị từng token).</p></div>
+      <div class="caption-item"><span class="num">2</span><h4>7 Agent Tools</h4><p>Agent tự chọn tool phù hợp: query_database, get_customer_profile, get_churn_risk_summary, get_revenue_insights, suggest_campaign, search_similar_customers, get_product_recommendations.</p></div>
+      <div class="caption-item"><span class="num">3</span><h4>ReAct Pattern</h4><p>Reasoning → Action → Observation loop. Agent suy nghĩ, chọn tool, đọc kết quả, suy nghĩ tiếp → trả lời bằng tiếng Việt.</p></div>
+      <div class="caption-item"><span class="num">4</span><h4>LLM Backend</h4><p>Primary: AWS Bedrock Claude Haiku (fast, accurate). Fallback: Ollama qwen2.5 (local, offline). Tự động chuyển đổi.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 14: Semantic Search ========== -->
+<section class="slide" id="s14">
+  <span class="section-tag">AI Agent</span>
+  <h2 class="section-title">Tìm kiếm ngữ nghĩa (pgvector)</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/20-search.png" alt="Semantic Search"></div>
+      <div class="explain">
+        <h3>Vector Similarity Search</h3>
+        <p>Tìm khách hàng bằng mô tả tự nhiên thay vì filter cứng.</p>
+        <ul>
+          <li><strong>Input:</strong> "khách chi tiêu nhiều nhưng lâu không quay lại"</li>
+          <li><strong>Process:</strong> Text → Embedding 1024-dim → Cosine similarity</li>
+          <li><strong>Embedding model:</strong> Titan Embed v2 (Bedrock) hoặc mxbai-embed-large (Ollama)</li>
+          <li><strong>Database:</strong> pgvector extension, HNSW index</li>
+          <li><strong>Output:</strong> Top K khách hàng tương tự nhất</li>
+          <li>API: <code>GET /search/behavior?q=...</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 15: Campaigns ========== -->
+<section class="slide" id="s15">
+  <span class="section-tag">Tính năng</span>
+  <h2 class="section-title">Quản lý chiến dịch Marketing</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/05-campaigns.png" alt="Campaigns"></div>
+      <div class="explain">
+        <h3>AI-Generated Campaigns</h3>
+        <p>Chiến dịch marketing được AI đề xuất tự động dựa trên phân tích churn.</p>
+        <ul>
+          <li><strong>Tự động tạo:</strong> Autonomous loop phát hiện nhóm rủi ro cao → tạo draft campaign</li>
+          <li><strong>Human-in-the-loop:</strong> Admin duyệt trước khi thực thi</li>
+          <li><strong>Workflow:</strong> Draft → Approved → Executed</li>
+          <li><strong>Targeting:</strong> Theo segment (high_churn, vip, at_risk)</li>
+          <li><strong>Channels:</strong> Email, Push notification, SMS</li>
+          <li>APIs: <code>GET/POST /campaigns</code>, <code>PUT /campaigns/:id/approve</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 16: Customers & Orders ========== -->
+<section class="slide" id="s16">
+  <span class="section-tag">Quản lý</span>
+  <h2 class="section-title">Khách hàng & Đơn hàng</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/09-customers.png" alt="Customers"></div>
+      <div class="explain">
+        <h3>Quản lý khách hàng</h3>
+        <p>Bảng 5,630 khách hàng với thông tin churn risk realtime.</p>
+        <ul>
+          <li>Hiển thị: ID, Gender, Tenure, Satisfaction, Orders, Churn%</li>
+          <li>Filter theo risk level (High/Medium/Low)</li>
+          <li>Badge màu theo mức rủi ro (đỏ/vàng/xanh)</li>
+          <li>Click vào row → xem chi tiết profile</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="screenshot-block" style="margin-top:24px">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/10-orders.png" alt="Orders"></div>
+      <div class="explain">
+        <h3>Quản lý đơn hàng</h3>
+        <p>100K+ đơn hàng từ Olist với trạng thái và tổng tiền.</p>
+        <ul>
+          <li>Columns: Order ID, Customer, Total, Status, Date</li>
+          <li>Status badges: delivered, shipped, processing, cancelled</li>
+          <li>Pagination (50 records/page)</li>
+          <li>API: <code>GET /orders?limit=50</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 17: Notifications ========== -->
+<section class="slide" id="s17">
+  <span class="section-tag">Tính năng</span>
+  <h2 class="section-title">Thông báo tự động & Sản phẩm</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/06-notifications.png" alt="Notifications"></div>
+      <div class="explain">
+        <h3>Hệ thống thông báo</h3>
+        <p>Notifications được tạo tự động bởi Autonomous Loop khi phát hiện anomaly.</p>
+        <ul>
+          <li><strong>Trigger tự động:</strong> Khách churn>70%, revenue drop>15%</li>
+          <li><strong>Unread badge:</strong> Số thông báo chưa đọc trên sidebar</li>
+          <li><strong>Mark all read:</strong> Đánh dấu tất cả đã đọc</li>
+          <li>API: <code>GET /notifications</code>, <code>PUT /notifications/read-all</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 18: ETL & Worker ========== -->
+<section class="slide" id="s18">
+  <span class="section-tag">Backend</span>
+  <h2 class="section-title">ETL Pipeline & Auto ML Training</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/19-docker-compose.png" alt="Docker"></div>
+      <div class="explain">
+        <h3>Worker Service (Background)</h3>
+        <p>Service chạy nền xử lý toàn bộ data pipeline và ML training.</p>
+        <ul>
+          <li><strong>ETL:</strong> 3 datasets Kaggle → Clean → Load PostgreSQL</li>
+          <li><strong>ML Train:</strong> 5 models train tuần tự (K-Means → DT → LR → LinReg → CF)</li>
+          <li><strong>Schedule:</strong> APScheduler retrain mỗi 4 giờ</li>
+          <li><strong>Embeddings:</strong> Generate 1024-dim vectors cho 200 customers</li>
+          <li><strong>Autonomous Loop:</strong> OAPA cycle sau mỗi lần train</li>
+          <li><strong>Memory limit:</strong> 2GB (ML training intensive)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 19: CI/CD ========== -->
+<section class="slide" id="s19">
+  <span class="section-tag">DevOps</span>
+  <h2 class="section-title">CI/CD Pipeline (GitHub Actions)</h2>
+  <div class="screenshot-block">
+    <div class="two-col">
+      <div class="screenshot-frame"><img src="screenshots/18-github-actions.png" alt="CI/CD"></div>
+      <div class="explain">
+        <h3>Automated Testing & Deployment</h3>
+        <p>Mỗi push lên master tự động chạy pipeline kiểm tra chất lượng code.</p>
+        <ul>
+          <li><strong>Step 1:</strong> ESLint — kiểm tra coding style frontend</li>
+          <li><strong>Step 2:</strong> TypeScript check — đảm bảo type safety</li>
+          <li><strong>Step 3:</strong> pytest — chạy API integration tests</li>
+          <li><strong>Step 4:</strong> Playwright — E2E browser tests</li>
+          <li><strong>Trigger:</strong> Push to master, Pull Requests</li>
+          <li><strong>Runner:</strong> ubuntu-latest (GitHub hosted)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== SLIDE 20: Thank You ========== -->
+<section class="slide title-slide" id="s20">
+  <h2 class="footer-slide" style="font-size:2.5rem;font-weight:800">Cảm ơn thầy đã lắng nghe!</h2>
+  <p style="color:var(--muted);margin-top:12px;font-size:1.1rem">KON ERP/CRM — Hệ thống Quản trị Doanh nghiệp Thông minh</p>
+  <div class="stats-bar" style="margin-top:40px">
+    <div class="stat"><div class="val">Next.js 16</div><div class="lbl">Frontend</div></div>
+    <div class="stat"><div class="val">FastAPI</div><div class="lbl">Backend</div></div>
+    <div class="stat"><div class="val">5 Models</div><div class="lbl">Machine Learning</div></div>
+    <div class="stat"><div class="val">LangGraph</div><div class="lbl">AI Agent</div></div>
+    <div class="stat"><div class="val">Docker</div><div class="lbl">Deployment</div></div>
+  </div>
+  <div style="margin-top:48px;text-align:center;color:var(--muted);font-size:14px;line-height:2">
+    <strong>Nhóm 5</strong><br>
+    Nguyễn Hữu Định &bull; Trần Hiền &bull; Trần Xuân Trường &bull; Nguyễn Minh Tuệ &bull; Nguyễn Quang Vinh<br>
+    <span style="color:var(--primary)">GVHD: [Tên giáo viên hướng dẫn]</span>
+  </div>
+</section>
+
+<script>
+const slides=document.querySelectorAll('.slide');
+const nav=document.getElementById('nav');
+const counter=document.getElementById('counter');
+slides.forEach((_,i)=>{const a=document.createElement('a');a.href='#s'+(i+1);nav.appendChild(a)});
+const dots=nav.querySelectorAll('a');
+function upd(){
+  const y=window.scrollY+window.innerHeight/2;
+  let c=0;
+  slides.forEach((s,i)=>{if(y>=s.offsetTop)c=i});
+  dots.forEach((d,i)=>d.classList.toggle('active',i===c));
+  counter.textContent=(c+1)+' / '+slides.length;
+}
+window.addEventListener('scroll',upd);upd();
+document.addEventListener('keydown',e=>{
+  const y=window.scrollY+window.innerHeight/2;
+  let c=0;slides.forEach((s,i)=>{if(y>=s.offsetTop)c=i});
+  if(['ArrowDown','ArrowRight',' '].includes(e.key)){e.preventDefault();if(c<slides.length-1)slides[c+1].scrollIntoView({behavior:'smooth'})}
+  else if(['ArrowUp','ArrowLeft'].includes(e.key)){e.preventDefault();if(c>0)slides[c-1].scrollIntoView({behavior:'smooth'})}
+});
+</script>
+</body>
+</html>

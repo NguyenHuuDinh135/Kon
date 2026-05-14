@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KON — Báo cáo cuối kì (Giao diện + Code)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c28;--border:#2a2a3e;--text:#e4e4e7;--muted:#8b8b9e;--primary:#6366f1;--accent:#22d3ee;--green:#34d399;--orange:#fb923c;--purple:#a78bfa;--red:#f87171;--pink:#ec4899}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+
+.slide{min-height:100vh;scroll-snap-align:start;padding:48px 56px;display:flex;flex-direction:column;justify-content:center;position:relative}
+.slide::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 20%,rgba(99,102,241,0.04) 0%,transparent 50%);pointer-events:none}
+
+/* Nav */
+.nav{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:999;display:flex;flex-direction:column;gap:5px}
+.nav a{width:7px;height:7px;border-radius:50%;background:var(--border);display:block;transition:all .2s}
+.nav a.active{background:var(--primary);box-shadow:0 0 6px var(--primary)}
+.counter{position:fixed;bottom:16px;right:20px;font-size:11px;color:var(--muted);z-index:999}
+
+/* Title */
+.title-slide h1{font-size:clamp(2.5rem,5vw,4.5rem);font-weight:900;background:linear-gradient(135deg,#fff 20%,var(--primary) 60%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;letter-spacing:-2px}
+.title-slide .sub{text-align:center;color:var(--muted);font-size:1.2rem;margin-top:12px}
+.title-slide .meta{text-align:center;margin-top:40px;color:var(--muted);font-size:14px;line-height:2}
+
+/* Section header */
+.stag{display:inline-block;padding:3px 12px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+.stag-ml{background:rgba(167,139,250,0.15);color:var(--purple)}
+.stag-agent{background:rgba(34,211,238,0.15);color:var(--accent)}
+.stag-dash{background:rgba(99,102,241,0.15);color:var(--primary)}
+.stag-devops{background:rgba(52,211,153,0.15);color:var(--green)}
+.stag-store{background:rgba(236,72,153,0.15);color:var(--pink)}
+
+.stitle{font-size:1.8rem;font-weight:800;color:#fff;margin-bottom:6px}
+.sdesc{color:var(--muted);font-size:14px;margin-bottom:24px}
+
+/* Layout: screenshot + code side by side */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:24px;width:100%}
+.split-wide{display:grid;grid-template-columns:1.2fr 0.8fr;gap:24px;width:100%}
+
+/* Screenshot */
+.ss{border-radius:10px;overflow:hidden;border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+.ss img{width:100%;display:block}
+.ss-label{padding:10px 14px;background:var(--surface);font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.ss-label::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
+
+/* Code block */
+.code-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.code-header{padding:8px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.code-header .dot{width:8px;height:8px;border-radius:50%}
+.code-header .dot-r{background:#ff5f57}
+.code-header .dot-y{background:#febc2e}
+.code-header .dot-g{background:#28c840}
+.code-body{padding:14px;overflow-x:auto;font-family:'JetBrains Mono','Fira Code',monospace;font-size:11.5px;line-height:1.7;color:#c9d1d9;max-height:420px;overflow-y:auto}
+.code-body .kw{color:#ff7b72}
+.code-body .fn{color:#d2a8ff}
+.code-body .str{color:#a5d6ff}
+.code-body .cm{color:#8b949e}
+.code-body .num{color:#79c0ff}
+.code-body .op{color:#ff7b72}
+.code-body .var{color:#ffa657}
+
+/* Annotations on screenshot */
+.annotated{position:relative}
+.annotated .ann{position:absolute;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#fff;pointer-events:none;white-space:nowrap}
+
+/* Explanation list */
+.explain-list{margin-top:16px}
+.explain-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.explain-item:last-child{border:none}
+.explain-num{width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px}
+.explain-text{font-size:13px;color:var(--muted);line-height:1.5}
+.explain-text strong{color:var(--text)}
+
+/* Full width screenshot */
+.ss-full{max-width:1000px;width:100%;margin:0 auto}
+
+/* Bottom caption grid */
+.caption-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:20px}
+.cap-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px}
+.cap-card strong{font-size:12px;display:block;margin-bottom:4px;color:var(--text)}
+.cap-card p{font-size:11px;color:var(--muted);line-height:1.4}
+
+@media(max-width:900px){.split,.split-wide{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav"></nav>
+<div class="counter" id="counter"></div>
+
+<!-- S1: TITLE -->
+<section class="slide title-slide" id="s1">
+  <h1>KON ERP/CRM</h1>
+  <p class="sub">Demo giao diện + Code Implementation</p>
+  <div class="meta">
+    <strong>Nguyễn Hữu Định — Nhóm trưởng</strong><br>
+    Phần việc: Kiến trúc, AI/ML Engine, Dashboard Analytics, Agent, DevOps<br><br>
+    Nhóm 5 &bull; Cơ sở dữ liệu &bull; UTE Đà Nẵng
+  </div>
+</section>
+
+<!-- S2: DASHBOARD MAIN -->
+<section class="slide" id="s2">
+  <span class="stag stag-dash">Dashboard</span>
+  <div class="stitle">Bảng điều khiển chính — KPIs & Revenue</div>
+  <p class="sdesc">Tổng hợp 4 KPI realtime + biểu đồ doanh thu + phân bố segments</p>
+  <div class="split-wide">
+    <div class="ss"><img src="screenshots/04-dashboard.png"><div class="ss-label">/dashboard — Trang chính admin</div></div>
+    <div>
+      <div class="explain-list">
+        <div class="explain-item"><span class="explain-num">1</span><div class="explain-text"><strong>KPI Cards:</strong> Total customers, orders, revenue, churn rate. Gọi <code>GET /dashboard/kpis</code> — 1 query aggregate trên 3 bảng.</div></div>
+        <div class="explain-item"><span class="explain-num">2</span><div class="explain-text"><strong>Revenue Area Chart:</strong> Recharts AreaChart, data từ <code>GET /dashboard/revenue-over-time</code>. Group by month, SUM(price+freight).</div></div>
+        <div class="explain-item"><span class="explain-num">3</span><div class="explain-text"><strong>Segment Donut:</strong> 5 clusters từ K-Means. API: <code>GET /dashboard/segmentation-stats</code>.</div></div>
+        <div class="explain-item"><span class="explain-num">4</span><div class="explain-text"><strong>AI Insights Feed:</strong> Latest logs từ autonomous loop cycle.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- S3: ANALYTICS -->
+<section class="slide" id="s3">
+  <span class="stag stag-dash">Analytics</span>
+  <div class="stitle">Phân tích đa chiều MDX</div>
+  <p class="sdesc">Revenue × Segment × Geography — Churn × Demographics</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/08-analytics.png"><div class="ss-label">/dashboard/analytics — MDX Analytics</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; apps/api/routers/analytics.py</div>
+      <div class="code-body"><span class="cm"># Revenue by customer state (geographic MDX)</span>
+<span class="kw">@router</span>.get(<span class="str">"/analytics/mdx/revenue-by-segment"</span>)
+<span class="kw">def</span> <span class="fn">revenue_by_segment</span>():
+    <span class="kw">with</span> engine.connect() <span class="kw">as</span> conn:
+        result = conn.execute(text(<span class="str">"""
+            SELECT c.customer_state,
+                   COUNT(DISTINCT o.order_id) as orders,
+                   SUM(oi.price) as revenue
+            FROM orders o
+            JOIN customers c ON o.customer_id = c.customer_id
+            JOIN order_items oi ON o.order_id = oi.order_id
+            WHERE o.order_status = 'delivered'
+            GROUP BY c.customer_state
+            ORDER BY revenue DESC
+            LIMIT 15
+        """</span>))
+        <span class="kw">return</span> [dict(zip(result.keys(), r))
+                <span class="kw">for</span> r <span class="kw">in</span> result.fetchall()]
+
+<span class="cm"># Churn rate by demographics (pivot table)</span>
+<span class="kw">@router</span>.get(<span class="str">"/analytics/mdx/churn-by-demographics"</span>)
+<span class="kw">def</span> <span class="fn">churn_by_demographics</span>():
+    <span class="kw">with</span> engine.connect() <span class="kw">as</span> conn:
+        result = conn.execute(text(<span class="str">"""
+            SELECT "Gender", "PreferredLoginDevice",
+                   "CityTier",
+                   COUNT(*) as total,
+                   SUM("Churn") as churned,
+                   ROUND(AVG("Churn_Probability")::numeric, 3)
+                     as avg_churn_prob
+            FROM customer_churn
+            GROUP BY "Gender", "PreferredLoginDevice",
+                     "CityTier"
+            ORDER BY avg_churn_prob DESC
+        """</span>))
+        <span class="kw">return</span> [dict(zip(result.keys(), r))
+                <span class="kw">for</span> r <span class="kw">in</span> result.fetchall()]</div>
+    </div>
+  </div>
+</section>
+
+<!-- S4: REVENUE FORECAST -->
+<section class="slide" id="s4">
+  <span class="stag stag-ml">Machine Learning</span>
+  <div class="stitle">Dự báo doanh thu — Linear Regression</div>
+  <p class="sdesc">Dự phóng 3 tháng tiếp theo, auto-retrain mỗi 4 giờ</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/17-revenue-analytics.png"><div class="ss-label">Revenue Forecast Chart (Recharts ComposedChart)</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; components/analytics/revenue-forecast-chart.tsx</div>
+      <div class="code-body"><span class="cm">// Transform API data → Recharts format</span>
+<span class="kw">const</span> chartData = (() =&gt; {
+  <span class="kw">if</span> (Array.isArray(data)) <span class="kw">return</span> data;
+  <span class="kw">const</span> historical = (data?.historical || [])
+    .map((d) =&gt; ({
+      month: d.month,
+      <span class="var">actual</span>: d.revenue,  <span class="cm">// solid line</span>
+    }));
+  <span class="kw">const</span> forecast = (data?.forecast || [])
+    .map((d) =&gt; ({
+      month: d.month,
+      <span class="var">forecast</span>: d.revenue, <span class="cm">// dashed line</span>
+    }));
+  <span class="kw">return</span> [...historical, ...forecast];
+})();
+
+<span class="cm">// ComposedChart: Area (actual) + Line (forecast)</span>
+&lt;<span class="fn">ComposedChart</span> data={chartData}&gt;
+  &lt;<span class="fn">Area</span> dataKey=<span class="str">"actual"</span>
+    stroke=<span class="str">"var(--color-primary)"</span>
+    fill=<span class="str">"url(#actualGradient)"</span> /&gt;
+  &lt;<span class="fn">Line</span> dataKey=<span class="str">"forecast"</span>
+    strokeDasharray=<span class="str">"5 5"</span>
+    stroke=<span class="str">"var(--color-chart-2)"</span> /&gt;
+&lt;/<span class="fn">ComposedChart</span>&gt;</div>
+    </div>
+  </div>
+</section>
+
+<!-- S5: K-MEANS CLUSTERING -->
+<section class="slide" id="s5">
+  <span class="stag stag-ml">Machine Learning</span>
+  <div class="stitle">K-Means Clustering — Phân nhóm RFM</div>
+  <p class="sdesc">4,300 khách hàng → 5 segments: VIP, Loyal, Regular, At Risk, Lost</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/13-clustering.png"><div class="ss-label">/predictions/clustering — Scatter plot 5 clusters</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/ai-engine/ai_engine/ml_models.py</div>
+      <div class="code-body"><span class="kw">from</span> sklearn.cluster <span class="kw">import</span> KMeans
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> silhouette_score
+
+<span class="kw">def</span> <span class="fn">train_kmeans_clustering</span>(conn):
+    <span class="cm"># 1. Calculate RFM from Online Retail</span>
+    rfm = conn.execute(text(<span class="str">"""
+        SELECT customer_id,
+          MAX(invoice_date) as last_purchase,
+          COUNT(DISTINCT invoice_no) as frequency,
+          SUM(quantity * unit_price) as monetary
+        FROM online_retail
+        WHERE customer_id IS NOT NULL
+          AND quantity > 0
+        GROUP BY customer_id
+    """</span>)).fetchall()
+
+    <span class="cm"># 2. Normalize features</span>
+    scaler = StandardScaler()
+    rfm_scaled = scaler.fit_transform(
+        rfm_df[[<span class="str">'Recency'</span>, <span class="str">'Frequency'</span>, <span class="str">'Monetary'</span>]]
+    )
+
+    <span class="cm"># 3. Fit K-Means (k=5)</span>
+    kmeans = KMeans(n_clusters=<span class="num">5</span>, random_state=<span class="num">42</span>)
+    rfm_df[<span class="str">'Cluster'</span>] = kmeans.fit_predict(rfm_scaled)
+
+    <span class="cm"># 4. Evaluate</span>
+    score = silhouette_score(rfm_scaled, rfm_df[<span class="str">'Cluster'</span>])
+
+    <span class="cm"># 5. Label clusters by RFM centroid values</span>
+    <span class="cm"># VIP: high F+M, low R</span>
+    <span class="cm"># Lost: high R, low F+M</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- S6: LOGISTIC REGRESSION -->
+<section class="slide" id="s6">
+  <span class="stag stag-ml">Machine Learning</span>
+  <div class="stitle">Logistic Regression — Churn Prediction</div>
+  <p class="sdesc">Dự đoán xác suất rời bỏ 0-100% với SHAP explainability</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/15-logistic-regression.png"><div class="ss-label">/predictions/logistic-regression — ROC + SHAP values</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/ai-engine/ai_engine/ml_models.py</div>
+      <div class="code-body"><span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> roc_auc_score
+<span class="kw">import</span> shap
+
+<span class="kw">def</span> <span class="fn">train_churn_model</span>(conn):
+    <span class="cm"># Load 5,630 customers with REAL churn labels</span>
+    df = pd.read_sql(<span class="str">"SELECT * FROM customer_churn"</span>, conn)
+
+    <span class="cm"># Features: numeric + one-hot categorical</span>
+    cat_cols = [<span class="str">'PreferredLoginDevice'</span>, <span class="str">'Gender'</span>,
+                <span class="str">'PreferredPaymentMode'</span>, <span class="str">'MaritalStatus'</span>]
+    X = pd.get_dummies(df[features], columns=cat_cols)
+    y = df[<span class="str">'Churn'</span>]  <span class="cm"># Real labels: 0 or 1</span>
+
+    <span class="cm"># Train with StandardScaler</span>
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    model = LogisticRegression(max_iter=<span class="num">1000</span>)
+    model.fit(X_train, y_train)
+
+    <span class="cm"># Predict probability for ALL customers</span>
+    proba = model.predict_proba(X_all_scaled)[:, <span class="num">1</span>]
+
+    <span class="cm"># SHAP for explainability</span>
+    explainer = shap.LinearExplainer(model, X_train)
+    shap_values = explainer.shap_values(X_test)
+
+    <span class="cm"># Metrics</span>
+    auc = roc_auc_score(y_test, proba_test)
+    <span class="cm"># → Store to ml_model_metrics table</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- S7: DECISION TREE -->
+<section class="slide" id="s7">
+  <span class="stag stag-ml">Machine Learning</span>
+  <div class="stitle">Decision Tree — Engagement Prediction</div>
+  <p class="sdesc">GridSearchCV hyperparameter tuning → Feature importance</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/14-decision-tree.png"><div class="ss-label">/predictions/decision-tree — Feature importance chart</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/ai-engine/ai_engine/ml_models.py</div>
+      <div class="code-body"><span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeClassifier
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> GridSearchCV
+
+<span class="kw">def</span> <span class="fn">train_decision_tree</span>(conn):
+    <span class="cm"># Derive engagement label from behavior</span>
+    df[<span class="str">'EngagementScore'</span>] = (
+        df[<span class="str">'OrderCount'</span>] * <span class="num">0.4</span> +
+        df[<span class="str">'CouponUsed'</span>] * <span class="num">0.3</span> +
+        df[<span class="str">'HourSpendOnApp'</span>] * <span class="num">0.3</span>
+    )
+    df[<span class="str">'Engagement'</span>] = pd.qcut(
+        df[<span class="str">'EngagementScore'</span>], <span class="num">4</span>,
+        labels=[<span class="str">'Low'</span>, <span class="str">'Medium'</span>, <span class="str">'High'</span>, <span class="str">'VIP'</span>]
+    )
+
+    <span class="cm"># GridSearchCV for best params</span>
+    param_grid = {
+        <span class="str">'max_depth'</span>: [<span class="num">3</span>, <span class="num">5</span>, <span class="num">7</span>, <span class="num">10</span>],
+        <span class="str">'min_samples_leaf'</span>: [<span class="num">5</span>, <span class="num">10</span>, <span class="num">20</span>],
+        <span class="str">'min_samples_split'</span>: [<span class="num">10</span>, <span class="num">20</span>, <span class="num">50</span>]
+    }
+    grid = GridSearchCV(
+        DecisionTreeClassifier(random_state=<span class="num">42</span>),
+        param_grid, cv=<span class="num">5</span>,
+        scoring=<span class="str">'f1_weighted'</span>
+    )
+    grid.fit(X_train, y_train)
+
+    <span class="cm"># Feature importance for visualization</span>
+    importances = grid.best_estimator_
+        .feature_importances_</div>
+    </div>
+  </div>
+</section>
+
+<!-- S8: AI AGENT -->
+<section class="slide" id="s8">
+  <span class="stag stag-agent">AI Agent</span>
+  <div class="stitle">LangGraph ReAct Agent — 7 Tools</div>
+  <p class="sdesc">AWS Bedrock Claude Haiku + Ollama fallback, trả lời tiếng Việt</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/07-agent-chat.png"><div class="ss-label">/dashboard/agent — Chat interface streaming</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/ai-engine/ai_engine/agent.py</div>
+      <div class="code-body"><span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, END
+<span class="kw">from</span> langgraph.prebuilt <span class="kw">import</span> ToolNode
+<span class="kw">from</span> langchain_aws <span class="kw">import</span> ChatBedrockConverse
+
+<span class="cm"># 7 tools bound to LLM</span>
+tools = [
+    query_database,         <span class="cm"># SQL sandbox</span>
+    get_customer_profile,   <span class="cm"># Full profile</span>
+    get_churn_risk_summary, <span class="cm"># Aggregate stats</span>
+    get_revenue_insights,   <span class="cm"># Monthly trends</span>
+    get_product_recommendations, <span class="cm"># CF</span>
+    suggest_campaign,       <span class="cm"># Marketing AI</span>
+    search_similar_customers <span class="cm"># pgvector</span>
+]
+
+<span class="cm"># LangGraph state machine</span>
+workflow = StateGraph(AgentState)
+workflow.add_node(<span class="str">"agent"</span>, call_model)
+workflow.add_node(<span class="str">"tools"</span>, ToolNode(tools))
+workflow.set_entry_point(<span class="str">"agent"</span>)
+workflow.add_conditional_edges(
+    <span class="str">"agent"</span>, should_continue,
+    {<span class="str">"tools"</span>: <span class="str">"tools"</span>, END: END}
+)
+workflow.add_edge(<span class="str">"tools"</span>, <span class="str">"agent"</span>)
+agent = workflow.compile()
+
+<span class="cm"># Streaming for realtime UI</span>
+<span class="kw">def</span> <span class="fn">stream_agent</span>(prompt):
+    <span class="kw">for</span> event <span class="kw">in</span> agent.stream(
+        {<span class="str">"messages"</span>: [HumanMessage(prompt)]}
+    ):
+        <span class="kw">if</span> <span class="str">"agent"</span> <span class="kw">in</span> event:
+            <span class="kw">yield</span> {<span class="str">"type"</span>: <span class="str">"token"</span>, ...}
+        <span class="kw">elif</span> <span class="str">"tools"</span> <span class="kw">in</span> event:
+            <span class="kw">yield</span> {<span class="str">"type"</span>: <span class="str">"tool_result"</span>, ...}</div>
+    </div>
+  </div>
+</section>
+
+<!-- S9: SEMANTIC SEARCH -->
+<section class="slide" id="s9">
+  <span class="stag stag-agent">AI Agent</span>
+  <div class="stitle">Semantic Search — pgvector Embeddings</div>
+  <p class="sdesc">Tìm khách hàng bằng ngôn ngữ tự nhiên (cosine similarity 1024-dim)</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/20-search.png"><div class="ss-label">/dashboard/search — Vector similarity search</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/mcp-servers/mcp_servers/tools.py</div>
+      <div class="code-body"><span class="kw">@tool</span>
+<span class="kw">def</span> <span class="fn">search_similar_customers</span>(
+    description: <span class="var">str</span>, limit: <span class="var">int</span> = <span class="num">5</span>
+) -&gt; str:
+    <span class="str">"""Find customers matching a natural
+    language description using semantic search."""</span>
+
+    <span class="cm"># 1. Get embedding model</span>
+    <span class="kw">if</span> use_bedrock:
+        embeddings = BedrockEmbeddings(
+            model_id=<span class="str">"amazon.titan-embed-text-v2:0"</span>
+        )
+    <span class="kw">else</span>:
+        embeddings = OllamaEmbeddings(
+            model=<span class="str">"mxbai-embed-large"</span>
+        )
+
+    <span class="cm"># 2. Encode query → 1024-dim vector</span>
+    query_vector = embeddings.embed_query(description)
+
+    <span class="cm"># 3. Cosine similarity search in pgvector</span>
+    result = conn.execute(text(<span class="str">"""
+        SELECT "CustomerID", "Gender",
+               "Tenure", "OrderCount",
+               "Churn_Probability"
+        FROM customer_churn
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding &lt;=&gt; :vector
+        LIMIT :lim
+    """</span>), {<span class="str">"vector"</span>: str(query_vector),
+         <span class="str">"lim"</span>: limit})</div>
+    </div>
+  </div>
+</section>
+
+<!-- S10: ETL + WORKER -->
+<section class="slide" id="s10">
+  <span class="stag stag-devops">DevOps</span>
+  <div class="stitle">ETL Pipeline & Auto-Training Worker</div>
+  <p class="sdesc">3 Kaggle datasets → PostgreSQL → 5 ML models → mỗi 4 giờ</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/19-docker-compose.png"><div class="ss-label">docker compose ps — 4 services running</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; apps/worker/main.py</div>
+      <div class="code-body"><span class="kw">import</span> kagglehub
+<span class="kw">from</span> apscheduler.schedulers.blocking <span class="kw">import</span> (
+    BlockingScheduler
+)
+
+<span class="kw">def</span> <span class="fn">run_etl</span>():
+    <span class="cm"># Extract 3 datasets from Kaggle</span>
+    olist = kagglehub.dataset_download(
+        <span class="str">"olistbr/brazilian-ecommerce"</span>)
+    retail = kagglehub.dataset_download(
+        <span class="str">"tunguz/online-retail"</span>)
+    churn = kagglehub.dataset_download(
+        <span class="str">"ankitverma2010/ecommerce-customer-churn..."</span>)
+
+    <span class="cm"># Load to PostgreSQL (bulk INSERT)</span>
+    load_olist_tables(olist)    <span class="cm"># 9 tables</span>
+    load_online_retail(retail)  <span class="cm"># 541K rows</span>
+    load_churn_data(churn)      <span class="cm"># 5,630 rows</span>
+
+<span class="kw">def</span> <span class="fn">train_all_models</span>():
+    train_kmeans_clustering()   <span class="cm"># RFM→5 clusters</span>
+    train_decision_tree()       <span class="cm"># Engagement</span>
+    train_churn_model()         <span class="cm"># Churn probability</span>
+    train_revenue_forecast()    <span class="cm"># 3-month forecast</span>
+    train_recommendations()     <span class="cm"># Collaborative CF</span>
+    run_autonomous_loop()       <span class="cm"># OAPA cycle</span>
+
+<span class="cm"># Schedule: retrain every 4 hours</span>
+scheduler = BlockingScheduler()
+scheduler.add_job(train_all_models,
+    <span class="str">'interval'</span>, hours=<span class="num">4</span>)
+scheduler.start()</div>
+    </div>
+  </div>
+</section>
+
+<!-- S11: CI/CD -->
+<section class="slide" id="s11">
+  <span class="stag stag-devops">DevOps</span>
+  <div class="stitle">CI/CD — GitHub Actions</div>
+  <p class="sdesc">Lint → TypeCheck → pytest → Playwright E2E on every push</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/18-github-actions.png"><div class="ss-label">GitHub Actions — Automated pipeline</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; .github/workflows/e2e.yml</div>
+      <div class="code-body"><span class="var">name</span>: E2E Tests
+<span class="var">on</span>: [push, pull_request]
+<span class="var">jobs</span>:
+  <span class="var">test</span>:
+    runs-on: ubuntu-latest
+    <span class="var">steps</span>:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: <span class="num">20</span> }
+
+      <span class="cm"># Step 1: Install</span>
+      - run: npm ci
+
+      <span class="cm"># Step 2: Lint (ESLint)</span>
+      - run: npm run lint
+
+      <span class="cm"># Step 3: Type check (tsc --noEmit)</span>
+      - run: npm run typecheck
+
+      <span class="cm"># Step 4: Python tests (pytest)</span>
+      - run: |
+          pip install -r requirements.txt
+          pytest apps/api/tests/ -v
+
+      <span class="cm"># Step 5: E2E browser tests</span>
+      - run: |
+          npx playwright install chromium
+          npx playwright test
+
+      <span class="cm"># Artifacts: screenshots on failure</span>
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: test-results/</div>
+    </div>
+  </div>
+</section>
+
+<!-- S12: CAMPAIGNS + NOTIFICATIONS -->
+<section class="slide" id="s12">
+  <span class="stag stag-agent">Autonomous</span>
+  <div class="stitle">Autonomous Loop → Campaigns & Notifications</div>
+  <p class="sdesc">AI tự phát hiện anomaly → tạo campaign draft → admin duyệt</p>
+  <div class="split">
+    <div class="ss"><img src="screenshots/05-campaigns.png"><div class="ss-label">/dashboard/campaigns — AI-generated marketing</div></div>
+    <div class="code-block">
+      <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; Autonomous OAPA Cycle</div>
+      <div class="code-body"><span class="cm"># Runs after every ML training (every 4h)</span>
+
+<span class="kw">def</span> <span class="fn">run_autonomous_loop</span>():
+    <span class="cm"># OBSERVE: Scan for anomalies</span>
+    high_risk = query(<span class="str">"""
+        SELECT COUNT(*) FROM customer_churn
+        WHERE "Churn_Probability" > 0.7
+    """</span>)
+
+    <span class="cm"># ANALYZE: Use agent to interpret</span>
+    analysis = run_agent(
+        <span class="str">"Phân tích tình hình churn hiện tại"</span>
+    )
+
+    <span class="cm"># PLAN: Generate campaign strategy</span>
+    campaign = suggest_campaign(<span class="str">"high_churn"</span>)
+
+    <span class="cm"># ACT: Create draft (human-in-the-loop)</span>
+    insert_campaign(
+        name=campaign.name,
+        status=<span class="str">"draft"</span>,  <span class="cm"># Admin must approve!</span>
+        segment=<span class="str">"high_churn"</span>
+    )
+    insert_notification(
+        title=<span class="str">"Cảnh báo: Churn tăng cao"</span>,
+        message=f<span class="str">"{high_risk} khách hàng rủi ro"</span>
+    )</div>
+    </div>
+  </div>
+</section>
+
+<!-- S13: THANK YOU -->
+<section class="slide title-slide" id="s13">
+  <h1 style="font-size:2.5rem">Cảm ơn thầy!</h1>
+  <p class="sub">Demo trực tiếp: http://localhost:3000</p>
+  <div style="margin-top:40px;text-align:center;color:var(--muted);font-size:14px">
+    <strong>Tổng kết phần Định làm:</strong><br><br>
+    5 ML models (1,575 dòng Python) &bull; LangGraph Agent (7 tools) &bull; ETL Pipeline<br>
+    Dashboard Analytics &bull; 4 trang ML Predictions &bull; Agent Chat UI &bull; Semantic Search<br>
+    Docker Compose (4 services) &bull; GitHub Actions CI/CD &bull; Database Design (20+ tables)
+  </div>
+</section>
+
+<script>
+const S=document.querySelectorAll('.slide'),N=document.getElementById('nav'),C=document.getElementById('counter');
+S.forEach((_,i)=>{const a=document.createElement('a');a.href='#s'+(i+1);N.appendChild(a)});
+const D=N.querySelectorAll('a');
+function u(){const y=scrollY+innerHeight/2;let c=0;S.forEach((s,i)=>{if(y>=s.offsetTop)c=i});D.forEach((d,i)=>d.classList.toggle('active',i===c));C.textContent=(c+1)+'/'+S.length}
+addEventListener('scroll',u);u();
+addEventListener('keydown',e=>{const y=scrollY+innerHeight/2;let c=0;S.forEach((s,i)=>{if(y>=s.offsetTop)c=i});if(['ArrowDown','ArrowRight',' '].includes(e.key)){e.preventDefault();if(c<S.length-1)S[c+1].scrollIntoView({behavior:'smooth'})}else if(['ArrowUp','ArrowLeft'].includes(e.key)){e.preventDefault();if(c>0)S[c-1].scrollIntoView({behavior:'smooth'})}});
+</script>
+</body>
+</html>
