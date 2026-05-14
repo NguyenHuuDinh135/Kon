@@ -45,7 +45,7 @@ jobs:
     - name: Run Python tests
       run: pytest packages/ai-engine/tests/ apps/api/tests/ -v
       env:
-        PYTHONPATH: packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers
+        PYTHONPATH: packages/db-core:packages/shared:packages/ai-engine:packages/mcp-servers:apps/api
 
   test:
     timeout-minutes: 20
