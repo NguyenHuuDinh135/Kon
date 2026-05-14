@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nguyễn Hữu Định — Full-stack, AI/ML, DevOps</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f172a;--surface:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--primary:#f43f5e;--green:#22c55e;--orange:#f59e0b;--blue:#3b82f6;--purple:#a78bfa;--cyan:#22d3ee}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:40px;max-width:1000px;margin:0 auto}
+h1{font-size:2.2rem;font-weight:800;margin-bottom:8px;color:#fff}
+h2{font-size:1.4rem;font-weight:700;margin-top:48px;margin-bottom:16px;color:#fff;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:1.1rem;font-weight:600;margin-top:24px;margin-bottom:8px;color:var(--primary)}
+h4{font-size:0.95rem;font-weight:600;margin-top:16px;margin-bottom:6px;color:var(--cyan)}
+p{margin-bottom:12px;color:var(--muted)}
+.badge{display:inline-block;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(244,63,94,0.15);color:var(--primary);margin-bottom:16px}
+code{background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.9em;color:var(--green)}
+pre{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;margin:12px 0;font-size:13px;line-height:1.6}
+pre code{background:none;padding:0}
+.file-path{font-family:monospace;font-size:13px;color:var(--orange);background:rgba(245,158,11,0.1);padding:4px 10px;border-radius:4px;display:inline-block;margin:4px 0}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+th{text-align:left;padding:10px;background:var(--surface);color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border)}
+.note{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.3);border-radius:8px;padding:16px;margin:16px 0}
+.note strong{color:var(--primary)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin:12px 0}
+.card h4{margin-top:0}
+ul,ol{margin:8px 0 16px 24px}
+li{margin:4px 0;color:var(--muted)}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:4px}
+.tag-blue{background:rgba(59,130,246,0.15);color:var(--blue)}
+.tag-green{background:rgba(34,197,94,0.15);color:var(--green)}
+.tag-purple{background:rgba(167,139,250,0.15);color:var(--purple)}
+.tag-orange{background:rgba(245,158,11,0.15);color:var(--orange)}
+.tag-cyan{background:rgba(34,211,238,0.15);color:var(--cyan)}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<span class="badge">Team Lead &bull; Full-stack &bull; AI/ML &bull; DevOps</span>
+<h1>Nguyễn Hữu Định — Tổng quan toàn bộ hệ thống</h1>
+<p>Kiến trúc sư + nhà phát triển chính. Tham gia tất cả modules, chịu trách nhiệm AI/ML, DevOps, và tích hợp hệ thống.</p>
+
+<h2>1. Tổng quan kiến trúc đã xây dựng</h2>
+
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Docker Compose (kon_network)                   │
+├──────────┬──────────┬───────────────────┬───────────────────────┤
+│  kon_web │ kon_api  │    kon_worker     │     kon_postgres      │
+│ Next.js  │ FastAPI  │ ETL + APScheduler │ PostgreSQL + pgvector │
+│ :3000    │ :8000    │ (background)      │ :5432                 │
+├──────────┴──────────┴───────────────────┴───────────────────────┤
+│                                                                   │
+│  packages/ui          → 74 shadcn components                     │
+│  packages/ai-engine   → 5 ML models + LangGraph agent            │
+│  packages/db-core     → SQLAlchemy + Alembic                     │
+│  packages/shared      → Pydantic schemas                         │
+│  packages/mcp-servers → 7 agent tools                            │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
+          ↕                    ↕                    ↕
+   AWS Bedrock          Ollama (local)         Kaggle datasets
+   Claude Haiku         qwen2.5 / mxbai       3 sources (650K+)
+</code></pre>
+
+<h2>2. Các module mình chịu trách nhiệm chính</h2>
+
+<div class="grid-2">
+<div class="card">
+<h4>AI/ML Engine</h4>
+<span class="tag tag-purple">packages/ai-engine/</span>
+<ul>
+<li>5 ML models (K-Means, DT, LR, LinReg, CF)</li>
+<li>SHAP explainability</li>
+<li>LangGraph ReAct agent</li>
+<li>AWS Bedrock + Ollama fallback</li>
+<li>Autonomous OAPA loop</li>
+</ul>
+</div>
+<div class="card">
+<h4>MCP Agent Tools</h4>
+<span class="tag tag-cyan">packages/mcp-servers/</span>
+<ul>
+<li>query_database (SQL sandbox)</li>
+<li>get_customer_profile</li>
+<li>get_churn_risk_summary</li>
+<li>get_revenue_insights</li>
+<li>get_product_recommendations</li>
+<li>suggest_campaign</li>
+<li>search_similar_customers (pgvector)</li>
+</ul>
+</div>
+<div class="card">
+<h4>ETL & Worker</h4>
+<span class="tag tag-orange">apps/worker/</span>
+<ul>
+<li>3 Kaggle dataset loaders</li>
+<li>Data cleaning + imputation</li>
+<li>Embedding generation (1024-dim)</li>
+<li>APScheduler (4h retrain cycle)</li>
+<li>System alerts for high-risk customers</li>
+</ul>
+</div>
+<div class="card">
+<h4>DevOps & Infrastructure</h4>
+<span class="tag tag-green">docker-compose.yml</span>
+<ul>
+<li>4-service Docker Compose</li>
+<li>GitHub Actions CI/CD</li>
+<li>Health checks + restart policies</li>
+<li>Volume management</li>
+<li>Network isolation</li>
+</ul>
+</div>
+<div class="card">
+<h4>Database Design</h4>
+<span class="tag tag-blue">packages/db-core/</span>
+<ul>
+<li>20+ tables across 3 data layers</li>
+<li>pgvector for embeddings</li>
+<li>SQLAlchemy models + Alembic migrations</li>
+<li>Index optimization</li>
+</ul>
+</div>
+<div class="card">
+<h4>Frontend (Dashboard + Analytics)</h4>
+<span class="tag tag-blue">apps/web/</span>
+<ul>
+<li>Dashboard KPIs + revenue charts</li>
+<li>MDX analytics (multidimensional)</li>
+<li>ML predictions pages (4 models)</li>
+<li>Agent chat interface</li>
+<li>Semantic search page</li>
+</ul>
+</div>
+</div>
+
+<h2>3. ML Models — Chi tiết implementation</h2>
+
+<div class="file-path">packages/ai-engine/ai_engine/ml_models.py</div>
+
+<h3>3.1. K-Means Clustering (RFM Segmentation)</h3>
+<pre><code># Input: Online Retail transactions → RFM features
+# Pipeline:
+# 1. Tính Recency, Frequency, Monetary cho mỗi customer
+# 2. StandardScaler normalize features
+# 3. KMeans(n_clusters=5) fit
+# 4. Label clusters: VIP, Loyal, Regular, At Risk, Lost
+# 5. Store to customer_segments table
+
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+rfm_scaled = scaler.fit_transform(rfm_df[['Recency', 'Frequency', 'Monetary']])
+kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
+rfm_df['Cluster'] = kmeans.fit_predict(rfm_scaled)
+
+# Metrics: silhouette_score, inertia, cluster_centers</code></pre>
+
+<h3>3.2. Decision Tree (Engagement Classification)</h3>
+<pre><code># Input: customer_churn dataset (5,630 rows)
+# Target: Engagement level (derived from OrderCount + CouponUsed + HourSpendOnApp)
+# Features: Tenure, SatisfactionScore, NumberOfDeviceRegistered, etc.
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+
+param_grid = {
+    'max_depth': [3, 5, 7, 10],
+    'min_samples_leaf': [5, 10, 20],
+    'min_samples_split': [10, 20, 50]
+}
+grid = GridSearchCV(DecisionTreeClassifier(random_state=42),
+                    param_grid, cv=5, scoring='f1_weighted')
+grid.fit(X_train, y_train)
+best_model = grid.best_estimator_
+
+# Output: DT_Label (Low/Medium/High/VIP) + DT_Confidence (probability)</code></pre>
+
+<h3>3.3. Logistic Regression (Churn Prediction)</h3>
+<pre><code># Input: customer_churn dataset with REAL churn labels (Churn column = 0/1)
+# Features: 13 numeric + one-hot encoded categorical
+# Categorical: PreferredLoginDevice, PreferredPaymentMode, Gender, MaritalStatus, PreferedOrderCat
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+
+# One-hot encode categoricals
+X = pd.get_dummies(df[features], columns=categorical_cols)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+model = LogisticRegression(max_iter=1000, random_state=42)
+model.fit(X_train, y_train)
+
+# Output: Churn_Prediction (0/1), Churn_Probability (0.0-1.0)
+# Risk levels: HIGH >0.7, MEDIUM 0.3-0.7, LOW <0.3
+# Explainability: SHAP values, top 10 coefficients, ROC curve</code></pre>
+
+<h3>3.4. Revenue Forecast (Linear Regression)</h3>
+<pre><code># Input: Olist monthly revenue (aggregated delivered orders)
+# Method: Simple Linear Regression on month index
+
+from sklearn.linear_model import LinearRegression
+
+monthly_revenue = orders_df.groupby(month)['revenue'].sum()
+X = np.arange(len(monthly_revenue)).reshape(-1, 1)  # month index
+y = monthly_revenue.values
+
+model = LinearRegression()
+model.fit(X, y)
+
+# Forecast next 3 months
+future_X = np.arange(len(X), len(X) + 3).reshape(-1, 1)
+forecast = model.predict(future_X)
+
+# Metrics: R-squared, slope, intercept</code></pre>
+
+<h2>4. AI Agent — LangGraph Architecture</h2>
+
+<div class="file-path">packages/ai-engine/ai_engine/agent.py</div>
+
+<pre><code># ReAct Pattern: Reason → Act → Observe → Repeat
+
+from langgraph.graph import StateGraph, END
+from langgraph.prebuilt import ToolNode
+from langchain_aws import ChatBedrock
+
+# LLM selection (Bedrock primary, Ollama fallback)
+if USE_BEDROCK:
+    llm = ChatBedrock(
+        model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        region_name="us-west-2"
+    )
+else:
+    llm = ChatOllama(model="qwen2.5", base_url=OLLAMA_URL)
+
+# Bind 7 tools
+llm_with_tools = llm.bind_tools(tools)
+
+# Graph: agent_node → should_continue? → tool_node → agent_node → ...
+graph = StateGraph(AgentState)
+graph.add_node("agent", call_model)
+graph.add_node("tools", ToolNode(tools))
+graph.add_conditional_edges("agent", should_continue, {
+    "continue": "tools",
+    "end": END
+})
+graph.add_edge("tools", "agent")
+
+# Two modes:
+# run_agent(prompt) → single response
+# stream_agent(prompt) → SSE events for real-time UI</code></pre>
+
+<h3>Autonomous Loop (OAPA)</h3>
+<div class="file-path">packages/ai-engine/ai_engine/autonomous_loop.py</div>
+<pre><code># Runs after every ML training cycle (every 4 hours)
+# 1. OBSERVE: Scan database for anomalies
+#    - Customers with churn_probability > 0.7
+#    - Revenue drops > 15%
+#    - New high-risk segments
+#
+# 2. ANALYZE: Use agent to interpret findings
+#    - Call get_churn_risk_summary
+#    - Call get_revenue_insights
+#
+# 3. PLAN: Generate campaign strategies
+#    - Call suggest_campaign for each segment
+#
+# 4. ACT: Create drafts (human-in-the-loop)
+#    - INSERT INTO campaigns (status='draft')
+#    - INSERT INTO notifications
+#    - INSERT INTO system_alerts</code></pre>
+
+<h2>5. ETL Pipeline — Detailed Flow</h2>
+
+<div class="file-path">apps/worker/main.py</div>
+
+<pre><code># Startup sequence:
+# 1. Wait for DB healthy
+# 2. Load Olist (9 tables, 100K+ orders)
+# 3. Load Online Retail (541K transactions, clean negatives)
+# 4. Load E-Commerce Churn (5,630 customers, impute NaN)
+# 5. Create indexes on key columns
+# 6. Generate embeddings (first 200 customers, batched)
+# 7. Train all ML models
+# 8. Run autonomous loop
+# 9. Schedule: repeat steps 7-8 every 4 hours
+
+import kagglehub
+from apscheduler.schedulers.blocking import BlockingScheduler
+
+# Dataset loading
+olist_path = kagglehub.dataset_download("olistbr/brazilian-ecommerce")
+retail_path = kagglehub.dataset_download("tunguz/online-retail")
+churn_path = kagglehub.dataset_download("ankitverma2010/ecommerce-customer-churn-analysis-and-prediction")
+
+# Embedding generation (expensive — limited to 200 customers)
+# Primary: Bedrock Titan Embed v2 (1024-dim)
+# Fallback: Ollama mxbai-embed-large (1024-dim)
+# Batched: 20 items per batch with rate limiting
+
+scheduler = BlockingScheduler()
+scheduler.add_job(retrain_all_models, 'interval', hours=4)
+scheduler.start()</code></pre>
+
+<h2>6. DevOps — Docker & CI/CD</h2>
+
+<h3>Docker Compose Architecture</h3>
+<pre><code># Service dependencies (health-check driven):
+# db (healthy) → worker starts ETL
+# db (healthy) → api starts serving
+# api (healthy) → web starts serving
+#
+# Key configs:
+# - worker: memory limit 2G, restart on-failure
+# - api: restart unless-stopped, health check /health
+# - web: standalone Next.js (output: 'standalone')
+# - db: pgvector image, persistent volume
+
+# Networking:
+# All on kon_network bridge
+# Inter-container DNS: db, api, web (hostname resolution)
+# host.docker.internal → Ollama on host machine</code></pre>
+
+<h3>GitHub Actions CI/CD</h3>
+<div class="file-path">.github/workflows/e2e.yml</div>
+<pre><code># Pipeline:
+# 1. Checkout code
+# 2. Setup Node 20 + Python 3.11
+# 3. npm ci (install dependencies)
+# 4. npm run lint (ESLint)
+# 5. npm run typecheck (tsc --noEmit)
+# 6. pytest apps/api/tests/ (API integration tests)
+# 7. npx playwright test (E2E browser tests)
+#
+# Triggers: push to master, pull requests
+# Environment: GitHub-hosted runner (ubuntu-latest)</code></pre>
+
+<h2>7. Frontend — Dashboard & Analytics Pages</h2>
+
+<div class="file-path">apps/web/app/(admin)/dashboard/page.tsx</div>
+<p>Dashboard chính: KPIs cards, revenue chart (Recharts ComposedChart), segmentation donut, top products bar chart, AI insights feed.</p>
+
+<div class="file-path">apps/web/app/(admin)/dashboard/analytics/page.tsx</div>
+<p>MDX-style analytics: Revenue by segment, churn by demographics, spending distribution, CLV analysis, geographic heatmap.</p>
+
+<div class="file-path">apps/web/app/(admin)/predictions/</div>
+<p>4 ML visualization pages: clustering scatter plot, decision tree feature importance, logistic regression ROC curve + SHAP, model comparison table.</p>
+
+<div class="file-path">apps/web/app/(admin)/dashboard/agent/page.tsx</div>
+<p>Chat interface: streaming responses via SSE, tool call visualization, markdown rendering, conversation history.</p>
+
+<h2>8. Database Design Decisions</h2>
+
+<pre><code># 3-layer data topology:
+#
+# Layer 1: Olist (ERP Core) — 9 tables
+#   Real Brazilian e-commerce data, multi-marketplace
+#   Used for: revenue analysis, product recommendations, geographic insights
+#
+# Layer 2: Online Retail — 1 table (541K transactions)
+#   UK online retail transactions
+#   Used for: RFM calculation → K-Means clustering
+#   Why separate: different granularity (transaction-level vs order-level)
+#
+# Layer 3: E-Commerce Churn — 1 table (5,630 customers)
+#   Supervised labels (real Churn = 0/1)
+#   Used for: Decision Tree + Logistic Regression training
+#   Has pgvector embedding column (1024-dim) for semantic search
+#
+# System tables: users, audit_logs, notifications, campaigns, system_alerts
+# ML tables: ml_model_metrics (versioned), ml_recommendations, customer_segments
+
+# pgvector usage:
+# - Column: customer_churn.embedding (Vector(1024))
+# - Index: HNSW for approximate nearest neighbor
+# - Operator: <=> (cosine distance)
+# - Use case: "find customers similar to this description"</code></pre>
+
+<h2>9. API Design — Key Patterns</h2>
+
+<pre><code># Authentication flow:
+# POST /auth/login → JWT token (24h expiry)
+# All protected routes: Depends(get_current_user)
+# Admin routes: Depends(require_admin)
+
+# Rate limiting (slowapi):
+# - Auth endpoints: 5/min (prevent brute force)
+# - Search: 30/min
+# - General: 60/min
+
+# Response patterns:
+# Success: {"data": [...], "count": 50}
+# Error: HTTPException(status_code=4xx, detail="message")
+# Streaming: StreamingResponse for agent chat (SSE)
+
+# SSR optimization:
+# - INTERNAL_API_URL=http://api:8000 (container-to-container, no DNS hop)
+# - NEXT_PUBLIC_API_URL=http://localhost:8000 (client-side browser calls)
+# - Server components fetch via INTERNAL_API_URL
+# - Client components fetch via NEXT_PUBLIC_API_URL</code></pre>
+
+<h2>10. Troubleshooting cheat sheet</h2>
+
+<table>
+<tr><th>Vấn đề</th><th>Lệnh debug</th><th>Fix</th></tr>
+<tr><td>DB không connect</td><td><code>docker compose logs db</code></td><td>Check .env DATABASE_URL, restart db</td></tr>
+<tr><td>Worker crash loop</td><td><code>docker compose logs worker --tail 50</code></td><td>Check Kaggle credentials, memory limit</td></tr>
+<tr><td>API 500 error</td><td><code>docker compose logs api | grep ERROR</code></td><td>Check PYTHONPATH, missing package</td></tr>
+<tr><td>Agent no response</td><td><code>docker compose logs api | grep bedrock</code></td><td>Check AWS creds or switch to Ollama</td></tr>
+<tr><td>Frontend hydration</td><td>Browser DevTools Console</td><td>Check SSR vs client data mismatch</td></tr>
+<tr><td>ML metrics empty</td><td><code>SELECT * FROM ml_model_metrics</code></td><td>Worker hasn't finished first train cycle</td></tr>
+<tr><td>Embeddings missing</td><td><code>SELECT COUNT(*) FROM customer_churn WHERE embedding IS NOT NULL</code></td><td>Check Bedrock/Ollama embedding access</td></tr>
+<tr><td>CI failing</td><td>GitHub Actions tab → failed step</td><td>Usually missing env var or type error</td></tr>
+</table>
+
+<h2>11. Kiến thức cần nắm vững để bảo vệ</h2>
+
+<div class="note">
+<strong>Câu hỏi thầy có thể hỏi:</strong>
+</div>
+
+<ol>
+<li><strong>Tại sao chọn 3 datasets riêng biệt thay vì 1 dataset lớn?</strong><br>
+→ Mỗi dataset phục vụ mục đích ML khác nhau (unsupervised clustering vs supervised classification vs time series). Kết hợp tạo ra hệ thống phong phú hơn.</li>
+
+<li><strong>Tại sao dùng pgvector thay vì Elasticsearch?</strong><br>
+→ pgvector tích hợp trực tiếp vào PostgreSQL, không cần service riêng. Phù hợp scale 5K-10K vectors. Elasticsearch overkill cho use case này.</li>
+
+<li><strong>AI Agent hoạt động thế nào?</strong><br>
+→ ReAct pattern: nhận câu hỏi → reasoning chọn tool → gọi tool → đọc kết quả → reasoning tiếp → trả lời. Loop tối đa 5 iterations.</li>
+
+<li><strong>Tại sao retrain mỗi 4 giờ?</strong><br>
+→ Balance giữa freshness và resource cost. Data thay đổi chậm (batch ETL), 4h đủ để capture trends mới mà không waste compute.</li>
+
+<li><strong>Docker Compose vs Kubernetes?</strong><br>
+→ Scope dự án là local/demo, 4 services đơn giản. K8s overkill. Docker Compose đủ cho development + demo.</li>
+
+<li><strong>Bedrock vs Ollama?</strong><br>
+→ Bedrock cho production (Claude Haiku — fast, accurate, Vietnamese). Ollama cho offline/demo khi không có internet. Dual-provider strategy.</li>
+</ol>
+
+</body>
+</html>
