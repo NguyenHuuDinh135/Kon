@@ -107,7 +107,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
   <div class="stitle">Bảng điều khiển chính — KPIs & Revenue</div>
   <p class="sdesc">Tổng hợp 4 KPI realtime + biểu đồ doanh thu + phân bố segments</p>
   <div class="split-wide">
-    <div class="ss"><img src="screenshots/04-dashboard.png"><div class="ss-label">/dashboard — Trang chính admin</div></div>
+    <div class="ss"><img src="../screenshots/04-dashboard.png"><div class="ss-label">/dashboard — Trang chính admin</div></div>
     <div>
       <div class="explain-list">
         <div class="explain-item"><span class="explain-num">1</span><div class="explain-text"><strong>KPI Cards:</strong> Total customers, orders, revenue, churn rate. Gọi <code>GET /dashboard/kpis</code> — 1 query aggregate trên 3 bảng.</div></div>
@@ -125,7 +125,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
   <div class="stitle">Phân tích đa chiều MDX</div>
   <p class="sdesc">Revenue × Segment × Geography — Churn × Demographics</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/08-analytics.png"><div class="ss-label">/dashboard/analytics — MDX Analytics</div></div>
+    <div class="ss"><img src="../screenshots/08-analytics.png"><div class="ss-label">/dashboard/analytics — MDX Analytics</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; apps/api/routers/analytics.py</div>
       <div class="code-body"><span class="cm"># Revenue by customer state (geographic MDX)</span>
@@ -175,7 +175,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
   <div class="stitle">Dự báo doanh thu — Linear Regression</div>
   <p class="sdesc">Dự phóng 3 tháng tiếp theo, auto-retrain mỗi 4 giờ</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/17-revenue-analytics.png"><div class="ss-label">Revenue Forecast Chart (Recharts ComposedChart)</div></div>
+    <div class="ss"><img src="../screenshots/17-revenue-analytics.png"><div class="ss-label">Revenue Forecast Chart (Recharts ComposedChart)</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; components/analytics/revenue-forecast-chart.tsx</div>
       <div class="code-body"><span class="cm">// Transform API data → Recharts format</span>
@@ -213,7 +213,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
   <div class="stitle">K-Means Clustering — Phân nhóm RFM</div>
   <p class="sdesc">4,300 khách hàng → 5 segments: VIP, Loyal, Regular, At Risk, Lost</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/13-clustering.png"><div class="ss-label">/predictions/clustering — Scatter plot 5 clusters</div></div>
+    <div class="ss"><img src="../screenshots/13-clustering.png"><div class="ss-label">/predictions/clustering — Scatter plot 5 clusters</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/ai-engine/ai_engine/ml_models.py</div>
       <div class="code-body"><span class="kw">from</span> sklearn.cluster <span class="kw">import</span> KMeans
@@ -259,7 +259,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
   <div class="stitle">Logistic Regression — Churn Prediction</div>
   <p class="sdesc">Dự đoán xác suất rời bỏ 0-100% với SHAP explainability</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/15-logistic-regression.png"><div class="ss-label">/predictions/logistic-regression — ROC + SHAP values</div></div>
+    <div class="ss"><img src="../screenshots/15-logistic-regression.png"><div class="ss-label">/predictions/logistic-regression — ROC + SHAP values</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/ai-engine/ai_engine/ml_models.py</div>
       <div class="code-body"><span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
@@ -303,7 +303,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
   <div class="stitle">Decision Tree — Engagement Prediction</div>
   <p class="sdesc">GridSearchCV hyperparameter tuning → Feature importance</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/14-decision-tree.png"><div class="ss-label">/predictions/decision-tree — Feature importance chart</div></div>
+    <div class="ss"><img src="../screenshots/14-decision-tree.png"><div class="ss-label">/predictions/decision-tree — Feature importance chart</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/ai-engine/ai_engine/ml_models.py</div>
       <div class="code-body"><span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeClassifier
@@ -347,7 +347,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
   <div class="stitle">LangGraph ReAct Agent — 7 Tools</div>
   <p class="sdesc">AWS Bedrock Claude Haiku + Ollama fallback, trả lời tiếng Việt</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/07-agent-chat.png"><div class="ss-label">/dashboard/agent — Chat interface streaming</div></div>
+    <div class="ss"><img src="../screenshots/07-agent-chat.png"><div class="ss-label">/dashboard/agent — Chat interface streaming</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/ai-engine/ai_engine/agent.py</div>
       <div class="code-body"><span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, END
@@ -396,7 +396,7 @@ agent = workflow.compile()
   <div class="stitle">Semantic Search — pgvector Embeddings</div>
   <p class="sdesc">Tìm khách hàng bằng ngôn ngữ tự nhiên (cosine similarity 1024-dim)</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/20-search.png"><div class="ss-label">/dashboard/search — Vector similarity search</div></div>
+    <div class="ss"><img src="../screenshots/20-search.png"><div class="ss-label">/dashboard/search — Vector similarity search</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; packages/mcp-servers/mcp_servers/tools.py</div>
       <div class="code-body"><span class="kw">@tool</span>
@@ -440,7 +440,7 @@ agent = workflow.compile()
   <div class="stitle">ETL Pipeline & Auto-Training Worker</div>
   <p class="sdesc">3 Kaggle datasets → PostgreSQL → 5 ML models → mỗi 4 giờ</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/19-docker-compose.png"><div class="ss-label">docker compose ps — 4 services running</div></div>
+    <div class="ss"><img src="../screenshots/19-docker-compose.png"><div class="ss-label">docker compose ps — 4 services running</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; apps/worker/main.py</div>
       <div class="code-body"><span class="kw">import</span> kagglehub
@@ -485,7 +485,7 @@ scheduler.start()</div>
   <div class="stitle">CI/CD — GitHub Actions</div>
   <p class="sdesc">Lint → TypeCheck → pytest → Playwright E2E on every push</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/18-github-actions.png"><div class="ss-label">GitHub Actions — Automated pipeline</div></div>
+    <div class="ss"><img src="../screenshots/18-github-actions.png"><div class="ss-label">GitHub Actions — Automated pipeline</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; .github/workflows/e2e.yml</div>
       <div class="code-body"><span class="var">name</span>: E2E Tests
@@ -533,7 +533,7 @@ scheduler.start()</div>
   <div class="stitle">Autonomous Loop → Campaigns & Notifications</div>
   <p class="sdesc">AI tự phát hiện anomaly → tạo campaign draft → admin duyệt</p>
   <div class="split">
-    <div class="ss"><img src="screenshots/05-campaigns.png"><div class="ss-label">/dashboard/campaigns — AI-generated marketing</div></div>
+    <div class="ss"><img src="../screenshots/05-campaigns.png"><div class="ss-label">/dashboard/campaigns — AI-generated marketing</div></div>
     <div class="code-block">
       <div class="code-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp; Autonomous OAPA Cycle</div>
       <div class="code-body"><span class="cm"># Runs after every ML training (every 4h)</span>
