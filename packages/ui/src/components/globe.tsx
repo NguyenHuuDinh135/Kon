@@ -1,14 +1,14 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import createGlobe, { type COBEOptions } from "cobe"
+import createGlobe from "cobe"
 import { useMotionValue, useSpring } from "motion/react"
 
 import { cn } from "@workspace/ui/lib/utils"
 
 const MOVEMENT_DAMPING = 1400
 
-const GLOBE_CONFIG: COBEOptions = {
+const GLOBE_CONFIG = {
   width: 800,
   height: 800,
   onRender: () => {},
@@ -41,7 +41,7 @@ export function Globe({
   config = GLOBE_CONFIG,
 }: {
   className?: string
-  config?: COBEOptions
+  config?: typeof GLOBE_CONFIG
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const phiRef = useRef(0)
@@ -85,13 +85,13 @@ export function Globe({
       ...config,
       width: widthRef.current * 2,
       height: widthRef.current * 2,
-      onRender: (state) => {
+      onRender: (state: Record<string, number>) => {
         if (!pointerInteracting.current) phiRef.current += 0.005
         state.phi = phiRef.current + rs.get()
         state.width = widthRef.current * 2
         state.height = widthRef.current * 2
       },
-    })
+    } as Parameters<typeof createGlobe>[1])
 
     setTimeout(() => (canvasRef.current!.style.opacity = "1"), 0)
     return () => {

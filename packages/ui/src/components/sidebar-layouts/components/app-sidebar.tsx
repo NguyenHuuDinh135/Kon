@@ -12,8 +12,8 @@ import {
   SquareTerminal
 } from "lucide-react";
 
-import { NavMain } from "./nav-main";
-import { NavProjects } from "./nav-projects";
+import { NavMain } from "./nav-main.js";
+import { NavProjects } from "./nav-projects.js";
 import {
   Sidebar,
   SidebarContent,
